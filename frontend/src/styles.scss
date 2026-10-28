@@ -1,0 +1,83 @@
+// Factory console design system: carbon navigation, mineral workspace, teal signal.
+$primary: #17877d !default;
+$body-bg: #f3f6f5 !default;
+$body-color: #1a2a30 !default;
+$border-color: #e2e9e8 !default;
+
+@import "../node_modules/bootstrap/scss/bootstrap";
+@import "../node_modules/bootstrap-icons/font/bootstrap-icons.css";
+
+:root {
+  color-scheme: light;
+  --vx-ink: #17272d;
+  --vx-muted: #73838a;
+  --vx-soft-muted: #94a1a5;
+  --vx-primary: #17877d;
+  --vx-primary-strong: #116d66;
+  --vx-primary-soft: #e5f4f0;
+  --vx-copper: #c87652;
+  --vx-copper-soft: #fbefe8;
+  --vx-line: #e2e9e8;
+  --vx-canvas: #f3f6f5;
+  --vx-paper: #ffffff;
+  --vx-success: #25836e;
+  --vx-warning: #ae7540;
+  --vx-danger: #b75e4d;
+  --vx-radius: 14px;
+  --vx-shadow: 0 5px 20px rgba(20, 44, 48, .045);
+}
+
+html { min-width: 320px; background: var(--vx-canvas); }
+body {
+  min-height: 100vh; margin: 0; color: var(--vx-ink); background: var(--vx-canvas);
+  font-family: Inter, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px; -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4, h5, h6 { color: var(--vx-ink); letter-spacing: -.025em; }
+h4 { font-size: 20px; }
+h5 { font-size: 16px; }
+h6 { font-size: 13px; }
+a { color: var(--vx-primary); text-decoration: none; }
+a:hover { color: var(--vx-primary-strong); }
+.text-muted { color: var(--vx-muted) !important; }
+.small, small { font-size: 11px; }
+
+.vx-card {
+  border: 1px solid var(--vx-line); border-radius: var(--vx-radius); color: var(--vx-ink);
+  background: var(--vx-paper); box-shadow: var(--vx-shadow);
+}
+.vx-table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--vx-ink);
+  --bs-table-border-color: #edf1f0;
+  --bs-table-hover-bg: #f4f9f7;
+  margin-bottom: 0;
+  th { padding: 12px 14px; border-bottom: 1px solid var(--vx-line) !important; color: var(--vx-muted); font-size: 9px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+  td { padding: 11px 14px; vertical-align: middle; font-size: 11px; }
+}
+.form-control, .form-select {
+  min-height: 38px; border-color: #dce5e3; border-radius: 9px; color: var(--vx-ink); background-color: #fff;
+  font-size: 12px;
+  &:focus { border-color: #65b6a9; box-shadow: 0 0 0 3px rgba(23,135,125,.12); }
+  &::placeholder { color: #9aa7aa; }
+}
+.form-label { margin-bottom: 5px; color: #56676e; font-size: 10px; font-weight: 650; }
+.btn { min-height: 34px; border-radius: 9px; font-size: 11px; font-weight: 650; }
+.btn-primary { --bs-btn-bg: #17877d; --bs-btn-border-color: #17877d; --bs-btn-hover-bg: #116d66; --bs-btn-hover-border-color: #116d66; --bs-btn-active-bg: #116d66; --bs-btn-active-border-color: #116d66; --bs-btn-disabled-bg: #17877d; --bs-btn-disabled-border-color: #17877d; }
+.btn-outline-primary { --bs-btn-color: #167c73; --bs-btn-border-color: #abd5ce; --bs-btn-hover-bg: #e9f5f2; --bs-btn-hover-color: #116d66; --bs-btn-hover-border-color: #79b9ad; --bs-btn-active-bg: #dcefeb; --bs-btn-active-color: #116d66; }
+.btn-outline-secondary { --bs-btn-color: #586a70; --bs-btn-border-color: #dce5e3; --bs-btn-hover-bg: #f1f5f4; --bs-btn-hover-color: #263a40; --bs-btn-hover-border-color: #cbd6d4; }
+.btn-outline-danger { --bs-btn-color: #a85649; --bs-btn-border-color: #e8c7c0; --bs-btn-hover-bg: #fbefec; --bs-btn-hover-color: #934438; --bs-btn-hover-border-color: #daa79c; }
+.nav-pills { --bs-nav-pills-link-active-bg: #e5f4f0; --bs-nav-pills-link-active-color: #167c73; }
+.nav-pills .nav-link { border-radius: 9px; color: var(--vx-muted); font-size: 11px; font-weight: 650; }
+.badge { font-size: 9px; font-weight: 700; letter-spacing: .025em; }
+.mono { font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace; font-variant-numeric: tabular-nums; }
+.form-control:disabled, .form-select:disabled { color: #809095; background: #f2f5f4; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(23,135,125,.35); outline-offset: 2px; }
+::selection { color: #123b38; background: #bcebe2; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+@import "./styles/app-shell";
+@import "./styles/dashboard";
