@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+**/node_modules/
+# Build output
+dist/
+**/dist/
+build/
+out/
+.angular/
+# IDE
+.idea/
+.vscode/
+*.swp
+# OS
+.DS_Store
+Thumbs.db
+# Logs
+*.log
+npm-debug.log*
+# Env
+.env
+.env.local
+# Java
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+# Misc
+.cache/
+.tmp/
