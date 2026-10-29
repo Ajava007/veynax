@@ -11,6 +11,7 @@ import java.util.Optional;
 
 @Service
 @Transactional
+@Deprecated
 public class ProductService {
     private final ProductRepository productRepository;
 

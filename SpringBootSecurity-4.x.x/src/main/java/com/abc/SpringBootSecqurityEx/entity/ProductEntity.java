@@ -17,6 +17,7 @@ import java.time.OffsetDateTime;
 @Table(name = "products")
 @Getter
 @Setter
+@Deprecated
 public class ProductEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
