@@ -41,4 +41,9 @@ public class Supplier extends BaseEntity {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private String status = "ACTIVE"; // ACTIVE, INACTIVE, BLACKLISTED
+
+    // --- Phase 3: procurement terms ---
+    @Column(name = "lead_time_days") private Integer leadTimeDays;
+    @Column(name = "payment_terms", length = 40) private String paymentTerms; // e.g. "NET 30", "50% ADVANCE"
+
 }

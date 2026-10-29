@@ -32,4 +32,11 @@ public class PurchaseOrderItem extends BaseEntity {
 
     @Column(name = "unit_price", nullable = false, precision = 18, scale = 4)
     private BigDecimal unitPrice;
+
+    // --- Phase 3: receiving tracking ---
+    @Column(name = "received_quantity", nullable = false) private Integer receivedQuantity = 0;
+    @Column(name = "rejected_quantity", nullable = false) private Integer rejectedQuantity = 0;
+    @Column(name = "damaged_quantity", nullable = false) private Integer damagedQuantity = 0;
+    @Column(name = "missing_quantity", nullable = false) private Integer missingQuantity = 0;
+
 }

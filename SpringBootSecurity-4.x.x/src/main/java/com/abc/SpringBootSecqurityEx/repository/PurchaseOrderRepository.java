@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long> {
     boolean existsByPoNumber(String poNumber);
+    java.util.Optional<com.abc.SpringBootSecqurityEx.entity.PurchaseOrder> findByPoNumber(String poNumber);
 }
