@@ -51,4 +51,15 @@ public class BomRow extends BaseEntity {
 
     @Column(length = 500)
     private String remark;
+
+    // --- Phase 2: BOM revision / approval / substitute ---
+    @Column(name = "bom_revision", length = 10)
+    private String bomRevision = "A";
+
+    @Column(nullable = false)
+    private boolean approved = false;
+
+    @Column(name = "substitute_part_code", length = 40)
+    private String substitutePartCode; // approved component substitute
+
 }

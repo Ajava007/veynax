@@ -43,6 +43,9 @@ public class VehicleModelService {
                 .vehicleType(req.vehicleType()).segment(req.segment()).modelYear(req.modelYear())
                 .fuelType(req.fuelType()).transmission(req.transmission()).basePrice(req.basePrice())
                 .status(req.status() != null ? req.status() : "DRAFT")
+                .variant(req.variant()).trimLevel(req.trimLevel()).colorOptions(req.colorOptions())
+                .optionPackages(req.optionPackages()).sourcingEligibility(req.sourcingEligibility())
+                .assemblyLineCode(req.assemblyLineCode()).productionStatus(req.productionStatus() != null ? req.productionStatus() : "PLANNED")
                 .build();
         return toResponse(repository.save(m));
     }
@@ -62,6 +65,9 @@ public class VehicleModelService {
         m.setTransmission(req.transmission());
         m.setBasePrice(req.basePrice());
         if (req.status() != null) m.setStatus(req.status());
+        m.setVariant(req.variant()); m.setTrimLevel(req.trimLevel()); m.setColorOptions(req.colorOptions());
+        m.setOptionPackages(req.optionPackages()); m.setSourcingEligibility(req.sourcingEligibility());
+        m.setAssemblyLineCode(req.assemblyLineCode()); m.setProductionStatus(req.productionStatus());
         return toResponse(repository.save(m));
     }
 
@@ -79,6 +85,8 @@ public class VehicleModelService {
     private MasterDataDtos.VehicleModelResponse toResponse(VehicleModel m) {
         return new MasterDataDtos.VehicleModelResponse(m.getId(), m.getModelCode(), m.getModelName(), m.getBrand(),
                 m.getVehicleType(), m.getSegment(), m.getModelYear(), m.getFuelType(),
-                m.getTransmission(), m.getBasePrice(), m.getStatus(), m.getCreatedAt(), m.getUpdatedAt());
+                m.getTransmission(), m.getBasePrice(), m.getStatus(), m.getVariant(), m.getTrimLevel(), m.getColorOptions(),
+                m.getOptionPackages(), m.getSourcingEligibility(), m.getAssemblyLineCode(), m.getProductionStatus(),
+                m.getCreatedAt(), m.getUpdatedAt());
     }
 }

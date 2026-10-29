@@ -50,4 +50,27 @@ public class VehicleModel extends BaseEntity {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private String status = "DRAFT";
+
+    // --- Phase 2: variant / sourcing / line assignment ---
+    @Column(length = 60)
+    private String variant;
+
+    @Column(length = 60)
+    private String trimLevel;
+
+    @Column(name = "color_options", length = 500)
+    private String colorOptions; // comma-separated, e.g. "Pearl White,Black,Red"
+
+    @Column(name = "option_packages", length = 1000)
+    private String optionPackages; // comma-separated option/accessory codes
+
+    @Column(name = "sourcing_eligibility", length = 10)
+    private String sourcingEligibility = "CKD"; // CKD, SKD, BOTH, LOCAL
+
+    @Column(name = "assembly_line_code", length = 30)
+    private String assemblyLineCode; // model-to-line assignment
+
+    @Column(name = "production_status", length = 20)
+    private String productionStatus = "PLANNED"; // PLANNED, IN_PRODUCTION, PHASED_OUT, DISCONTINUED
+
 }

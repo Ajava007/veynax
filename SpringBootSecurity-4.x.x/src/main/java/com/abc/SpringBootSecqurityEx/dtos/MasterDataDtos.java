@@ -43,10 +43,14 @@ public final class MasterDataDtos {
             @Size(max = 30) String fuelType,
             @Size(max = 30) String transmission,
             BigDecimal basePrice,
-            String status) {}
+            String status,
+            String variant, String trimLevel, String colorOptions,
+            String optionPackages, String sourcingEligibility, String assemblyLineCode, String productionStatus) {}
 
     public record VehicleModelResponse(
             Long id, String modelCode, String modelName, String brand, String vehicleType,
             String segment, String modelYear, String fuelType, String transmission,
-            BigDecimal basePrice, String status, Instant createdAt, Instant updatedAt) {}
+            BigDecimal basePrice, String status, String variant, String trimLevel, String colorOptions,
+            String optionPackages, String sourcingEligibility, String assemblyLineCode, String productionStatus,
+            Instant createdAt, Instant updatedAt) {}
 }

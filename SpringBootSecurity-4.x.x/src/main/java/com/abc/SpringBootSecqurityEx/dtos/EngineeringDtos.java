@@ -17,11 +17,11 @@ public final class EngineeringDtos {
             @Size(max = 30) String category,
             @DecimalMin(value = "0", message = "Standard cost cannot be negative") BigDecimal standardCost,
             @Size(max = 10) String revision,
-            String status) {}
+            String status, String substitutePartCode) {}
 
     public record PartResponse(
             Long id, String partCode, String name, String description, String uom,
-            String category, BigDecimal standardCost, String revision, String status,
+            String category, BigDecimal standardCost, String revision, String status, String substitutePartCode,
             Instant createdAt, Instant updatedAt) {}
 
     public record BomRowRequest(
@@ -33,12 +33,14 @@ public final class EngineeringDtos {
             @Min(1) Integer level,
             LocalDate effectiveFrom,
             LocalDate effectiveTo,
-            @Size(max = 500) String remark) {}
+            @Size(max = 500) String remark,
+            @Size(max = 10) String bomRevision, Boolean approved, String substitutePartCode) {}
 
     public record BomRowResponse(
             Long id, String parentPartCode, String componentPartCode, BigDecimal quantity,
             BigDecimal scrapFactor, boolean optional, Integer level,
             LocalDate effectiveFrom, LocalDate effectiveTo, String remark,
+            String bomRevision, boolean approved, String substitutePartCode,
             Instant createdAt, Instant updatedAt) {}
 
     public record RoutingOperationRequest(
@@ -48,10 +50,12 @@ public final class EngineeringDtos {
             @NotBlank(message = "Work center is required") @Size(max = 60) String workCenter,
             @Min(0) Integer setupTimeSec,
             @NotNull(message = "Cycle time is required") @Min(1) Integer cycleTimeSec,
-            @Size(max = 1000) String instructions) {}
+            @Size(max = 1000) String instructions,
+            @Size(max = 30) String lineCode, @Size(max = 60) String workstation) {}
 
     public record RoutingOperationResponse(
             Long id, String modelCode, Integer operationNumber, String operationName,
             String workCenter, Integer setupTimeSec, Integer cycleTimeSec, String instructions,
+            String lineCode, String workstation,
             Instant createdAt, Instant updatedAt) {}
 }

@@ -44,4 +44,9 @@ public class Part extends BaseEntity {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private String status = "DRAFT"; // DRAFT, ACTIVE, OBSOLETE
+
+    // --- Phase 2: approved substitute ---
+    @Column(name = "substitute_part_code", length = 40)
+    private String substitutePartCode;
+
 }

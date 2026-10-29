@@ -40,4 +40,12 @@ public class RoutingOperation extends BaseEntity {
 
     @Column(length = 1000)
     private String instructions;
+
+    // --- Phase 2: line assignment / workstation ---
+    @Column(name = "line_code", length = 30)
+    private String lineCode; // model-to-line assignment
+
+    @Column(name = "workstation", length = 60)
+    private String workstation; // specific workstation within work center
+
 }
