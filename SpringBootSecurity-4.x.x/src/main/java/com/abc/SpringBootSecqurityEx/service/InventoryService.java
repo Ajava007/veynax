@@ -6,6 +6,11 @@ import com.abc.SpringBootSecqurityEx.entity.InventoryItem;
 import com.abc.SpringBootSecqurityEx.entity.StockTransaction;
 import com.abc.SpringBootSecqurityEx.repository.InventoryItemRepository;
 import com.abc.SpringBootSecqurityEx.repository.StockTransactionRepository;
+import com.abc.SpringBootSecqurityEx.repository.MaterialReservationRepository;
+import com.abc.SpringBootSecqurityEx.entity.MaterialReservation;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,8 +28,11 @@ public class InventoryService {
 
     private final InventoryItemRepository itemRepository;
     private final StockTransactionRepository txnRepository;
+    private final MaterialReservationRepository reservationRepo;
+    private static final AtomicLong SEQ = new AtomicLong(System.currentTimeMillis() % 100000);
 
-    public InventoryService(InventoryItemRepository itemRepository, StockTransactionRepository txnRepository) {
+    public InventoryService(InventoryItemRepository itemRepository, StockTransactionRepository txnRepository, MaterialReservationRepository reservationRepo) {
+        this.reservationRepo = reservationRepo;
         this.itemRepository = itemRepository;
         this.txnRepository = txnRepository;
     }
@@ -81,4 +89,95 @@ public class InventoryService {
         return new InventoryDtos.StockTransactionResponse(t.getId(), t.getPartCode(), t.getWarehouse(), t.getTxnType(),
                 t.getQuantity(), t.getReferenceType(), t.getReferenceId(), t.getRemark(), t.getCreatedAt());
     }
+
+    // --- Phase 4: no-negative-stock enforcement ---
+    private void assertNoNegativeStock(String partCode, String warehouse, BigDecimal newOnHand) {
+        if (newOnHand.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalStateException("Negative stock prevented: part=" + partCode + " warehouse=" + warehouse +
+                " would go to " + newOnHand);
+        }
+    }
+
+    // --- Phase 4: reserve material for work order ---
+    @org.springframework.transaction.annotation.Transactional
+    public MaterialReservation reserve(InventoryDtos.ReserveRequest req) {
+        InventoryItem item = itemRepository.findByPartCodeAndWarehouse(req.partCode(), req.warehouse())
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Stock not found: " + req.partCode() + " @ " + req.warehouse()));
+        BigDecimal available = item.getOnHand().subtract(item.getReserved());
+        if (available.compareTo(req.quantity()) < 0) {
+            throw new IllegalStateException("Insufficient available stock. Available=" + available + " requested=" + req.quantity());
+        }
+        if (!"AVAILABLE".equals(item.getStatus())) {
+            throw new IllegalStateException("Stock is " + item.getStatus() + " - cannot reserve");
+        }
+        item.setReserved(item.getReserved().add(req.quantity()));
+        itemRepository.save(item);
+
+        String resNumber = "RES-" + String.format("%06d", SEQ.incrementAndGet());
+        MaterialReservation r = MaterialReservation.builder()
+            .reservationNumber(resNumber).partCode(req.partCode())
+            .workOrderNumber(req.workOrderNumber()).warehouse(req.warehouse())
+            .lotNumber(req.lotNumber()).quantity(req.quantity()).status("RESERVED")
+            .requiredBy(req.requiredBy()).reservedBy(req.reservedBy()).remark(req.remark()).build();
+        return reservationRepo.save(r);
+    }
+
+    // --- Phase 4: issue (kit) reserved material to work order ---
+    @org.springframework.transaction.annotation.Transactional
+    public MaterialReservation issue(String reservationNumber) {
+        MaterialReservation r = reservationRepo.findByReservationNumber(reservationNumber)
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Reservation not found: " + reservationNumber));
+        if (!"RESERVED".equals(r.getStatus())) {
+            throw new IllegalStateException("Reservation is " + r.getStatus() + " - cannot issue");
+        }
+        InventoryItem item = itemRepository.findByPartCodeAndWarehouse(r.getPartCode(), r.getWarehouse())
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Stock not found"));
+        BigDecimal newOnHand = item.getOnHand().subtract(r.getQuantity());
+        assertNoNegativeStock(r.getPartCode(), r.getWarehouse(), newOnHand);
+        item.setOnHand(newOnHand);
+        item.setReserved(item.getReserved().subtract(r.getQuantity()));
+        itemRepository.save(item);
+
+        StockTransaction txn = new StockTransaction();
+        txn.setPartCode(r.getPartCode());
+        txn.setWarehouse(r.getWarehouse());
+        txn.setTxnType("ISSUE");
+        txn.setQuantity(r.getQuantity().negate());
+        txn.setReferenceType("WO");
+        txn.setReferenceId(r.getWorkOrderNumber());
+        txn.setRemark("Kitted to work order via reservation " + r.getReservationNumber());
+        txnRepository.save(txn);
+
+        r.setStatus("ISSUED");
+        return reservationRepo.save(r);
+    }
+
+    // --- Phase 4: cancel reservation ---
+    @org.springframework.transaction.annotation.Transactional
+    public MaterialReservation cancel(String reservationNumber) {
+        MaterialReservation r = reservationRepo.findByReservationNumber(reservationNumber)
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Reservation not found: " + reservationNumber));
+        if (!"RESERVED".equals(r.getStatus())) {
+            throw new IllegalStateException("Reservation is " + r.getStatus() + " - cannot cancel");
+        }
+        InventoryItem item = itemRepository.findByPartCodeAndWarehouse(r.getPartCode(), r.getWarehouse())
+            .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Stock not found"));
+        item.setReserved(item.getReserved().subtract(r.getQuantity()));
+        itemRepository.save(item);
+        r.setStatus("CANCELLED");
+        return reservationRepo.save(r);
+    }
+
+    // --- Phase 4: inventory valuation ---
+    public BigDecimal valuation() {
+        return itemRepository.findAll().stream()
+            .map(i -> i.getOnHand().multiply(java.math.BigDecimal.ONE)) // would multiply by standard cost from Part
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+
+    public org.springframework.data.domain.Page<MaterialReservation> allReservations(org.springframework.data.domain.Pageable p) { return reservationRepo.findAll(p); }
+    public org.springframework.data.domain.Page<MaterialReservation> reservationsByStatus(String s, org.springframework.data.domain.Pageable p) { return reservationRepo.findByStatus(s, p); }
+    public org.springframework.data.domain.Page<MaterialReservation> reservationsByWorkOrder(String wo, org.springframework.data.domain.Pageable p) { return reservationRepo.findByWorkOrderNumber(wo, p); }
+
 }

@@ -41,4 +41,27 @@ public final class InventoryDtos {
     public record MrpResultResponse(
             String runNumber, LocalDate planDate, String partCode, BigDecimal grossRequirement,
             BigDecimal onHand, BigDecimal scheduledReceipts, BigDecimal netShortage, String action) {}
+
+    public record ReserveRequest(
+        @jakarta.validation.constraints.NotBlank String partCode,
+        String workOrderNumber,
+        @jakarta.validation.constraints.NotBlank String warehouse,
+        String lotNumber,
+        @jakarta.validation.constraints.NotNull @jakarta.validation.constraints.DecimalMin("0.0001") java.math.BigDecimal quantity,
+        java.time.LocalDate requiredBy,
+        String reservedBy,
+        String remark) {}
+
+    public record ReservationResponse(
+        Long id, String reservationNumber, String partCode, String workOrderNumber,
+        String warehouse, String lotNumber, java.math.BigDecimal quantity,
+        String status, java.time.LocalDate requiredBy, String reservedBy, String remark,
+        java.time.Instant createdAt, java.time.Instant updatedAt) {}
+
+    public record ShortageResponse(
+        String partCode, String partName, java.math.BigDecimal required,
+        java.math.BigDecimal onHand, java.math.BigDecimal reserved,
+        java.math.BigDecimal available, java.math.BigDecimal shortage,
+        String severity) {} // CRITICAL, WARNING, OK
+
 }

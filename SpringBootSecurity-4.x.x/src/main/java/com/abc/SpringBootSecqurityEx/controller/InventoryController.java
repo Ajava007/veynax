@@ -4,6 +4,8 @@ package com.abc.SpringBootSecqurityEx.controller;
 import com.abc.SpringBootSecqurityEx.dtos.ApiResponse;
 import com.abc.SpringBootSecqurityEx.dtos.InventoryDtos;
 import com.abc.SpringBootSecqurityEx.service.InventoryService;
+import com.abc.SpringBootSecqurityEx.entity.MaterialReservation;
+import com.abc.SpringBootSecqurityEx.dtos.InventoryDtos;
 import com.abc.SpringBootSecqurityEx.service.MrpService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -60,4 +62,35 @@ public class InventoryController {
     public ResponseEntity<ApiResponse<List<InventoryDtos.MrpResultResponse>>> mrpRun(@PathVariable String runNumber) {
         return ResponseEntity.ok(ApiResponse.ok(mrpService.findByRun(runNumber), "MRP run retrieved"));
     }
+
+    @PostMapping("/reserve")
+    public ResponseEntity<ApiResponse<MaterialReservation>> reserve(@Valid @RequestBody InventoryDtos.ReserveRequest req) {
+        return ResponseEntity.status(201).body(ApiResponse.success(service.reserve(req)));
+    }
+
+    @PostMapping("/reservations/{reservationNumber}/issue")
+    public ResponseEntity<ApiResponse<MaterialReservation>> issue(@PathVariable String reservationNumber) {
+        return ResponseEntity.ok(ApiResponse.success(service.issue(reservationNumber), "Material issued to work order"));
+    }
+
+    @PostMapping("/reservations/{reservationNumber}/cancel")
+    public ResponseEntity<ApiResponse<MaterialReservation>> cancel(@PathVariable String reservationNumber) {
+        return ResponseEntity.ok(ApiResponse.success(service.cancel(reservationNumber), "Reservation cancelled"));
+    }
+
+    @GetMapping("/reservations")
+    public ResponseEntity<ApiResponse<org.springframework.data.domain.Page<MaterialReservation>>> reservations(
+            @RequestParam(required=false) String status,
+            @RequestParam(required=false) String workOrderNumber,
+            org.springframework.data.domain.Pageable pageable) {
+        if (workOrderNumber != null) return ResponseEntity.ok(ApiResponse.success(service.reservationsByWorkOrder(workOrderNumber, pageable)));
+        if (status != null) return ResponseEntity.ok(ApiResponse.success(service.reservationsByStatus(status, pageable)));
+        return ResponseEntity.ok(ApiResponse.success(service.allReservations(pageable)));
+    }
+
+    @GetMapping("/valuation")
+    public ResponseEntity<ApiResponse<java.math.BigDecimal>> valuation() {
+        return ResponseEntity.ok(ApiResponse.success(service.valuation()));
+    }
+
 }
