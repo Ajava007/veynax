@@ -32,4 +32,11 @@ public class Dealer extends BaseEntity {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private String status = "ACTIVE";
+
+    // --- Phase 5: commercial terms ---
+    @Column(name = "credit_limit", precision = 18, scale = 2) private java.math.BigDecimal creditLimit = java.math.BigDecimal.ZERO;
+    @Column(name = "advance_payment_pct", precision = 5, scale = 2) private java.math.BigDecimal advancePaymentPct = new java.math.BigDecimal("30.00");
+    @Column(name = "payment_terms", length = 40) private String paymentTerms = "NET 90";
+    @Column(name = "account_balance", precision = 18, scale = 2) private java.math.BigDecimal accountBalance = java.math.BigDecimal.ZERO;
+
 }

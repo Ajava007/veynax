@@ -55,4 +55,11 @@ public class SalesOrder extends BaseEntity {
 
     @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
+
+    // --- Phase 5: quotation link + advance payment ---
+    @Column(name = "quotation_id") private Long quotationId;
+    @Column(name = "advance_pct", precision = 5, scale = 2) private java.math.BigDecimal advancePct;
+    @Column(name = "advance_required", precision = 18, scale = 2) private java.math.BigDecimal advanceRequired;
+    @Column(name = "advance_received", precision = 18, scale = 2) private java.math.BigDecimal advanceReceived = java.math.BigDecimal.ZERO;
+
 }

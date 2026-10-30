@@ -52,4 +52,14 @@ public final class SalesDtos {
 
     public record YardSlotResponse(
             Long id, String rowCode, Integer slotNumber, String vin, String status) {}
+
+    public record QuotationRequest(
+        @NotBlank String dealerCode,
+        @NotBlank String modelCode,
+        String variant, String color,
+        @NotNull @Min(1) Integer quantity,
+        @NotNull @DecimalMin("0.01") BigDecimal unitPrice,
+        BigDecimal accessoriesCost, BigDecimal transportCost, BigDecimal taxAmount,
+        LocalDate validUntil, String remarks) {}
+
 }

@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
     boolean existsBySoNumber(String soNumber);
     Optional<SalesOrder> findByVinAndStatusNot(String vin, String status);
+    java.util.Optional<com.abc.SpringBootSecqurityEx.entity.SalesOrder> findBySoNumber(String soNumber);
 }
