@@ -46,4 +46,10 @@ public class ProductionPlan extends BaseEntity {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private String status = "PLANNED"; // PLANNED, RELEASED, IN_PROGRESS, COMPLETED, CANCELLED
+
+    // --- Phase 6: plan vs actual ---
+    @Column(name = "actual_quantity", nullable = false) private Integer actualQuantity = 0;
+    @Column(name = "revision_reason", length = 500) private String revisionReason;
+    @Column(name = "revised_by", length = 100) private String revisedBy;
+
 }
