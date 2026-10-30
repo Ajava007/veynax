@@ -60,4 +60,11 @@ public class WorkOrder extends BaseEntity {
 
     @Column(name = "generated_vin_to", length = 20)
     private String generatedVinTo;
+
+    // --- Phase 7: actual consumption / scrap / rework ---
+    @Column(name = "scrap_quantity", nullable = false) private Integer scrapQuantity = 0;
+    @Column(name = "rework_count", nullable = false) private Integer reworkCount = 0;
+    @Column(name = "actual_start") private java.time.LocalDateTime actualStart;
+    @Column(name = "actual_finish") private java.time.LocalDateTime actualFinish;
+
 }
