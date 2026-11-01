@@ -11,7 +11,7 @@
       <div class="auth-heading"><span class="auth-kicker">SECURE WORKSPACE</span><h2>{{ mode() === 'login' ? 'Welcome back' : 'Create your account' }}</h2><p>{{ mode() === 'login' ? 'Sign in to continue to your factory workspace.' : 'Register for access to the VeynaX operations platform.' }}</p></div>
       <ul class="nav nav-pills nav-fill auth-tabs" aria-label="Account action">
         <li class="nav-item"><button type="button" class="nav-link" [class.active]="mode()==='login'" [attr.aria-pressed]="mode()==='login'" (click)="mode.set('login')">Sign in</button></li>
-        <li class="nav-item"><button type="button" class="nav-link" [class.active]="mode()==='register'" [attr.aria-pressed]="mode()==='register'" (click)="mode.set('register')">Register</button></li>
+        @if (canRegister()) { <li class="nav-item"><button type="button" class="nav-link" [class.active]="mode()==='register'" [attr.aria-pressed]="mode()==='register'" (click)="mode.set('register')">Register</button></li> }
       </ul>
       <form [formGroup]="form" (ngSubmit)="submit()">
         @if (mode() === 'register') {

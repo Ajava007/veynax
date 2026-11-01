@@ -4,7 +4,7 @@
     <div class="hero-copy">
       <div class="eyebrow"><span class="eyebrow-line"></span> SUPPLIER NETWORK · MATERIAL FLOW</div>
       <div class="hero-label"><span class="status-dot"></span> PROCUREMENT OPERATING MODEL</div>
-      <h2 id="procurement-title">A vehicle is built<br>by <em>orchestrating</em><br>what we buy.</h2>
+      <h2 id="procurement-title">Parts &amp; Supply<br><em>Chain operations.</em></h2>
       <p class="hero-lede">The plant shapes the body and brings the vehicle together. Suppliers provide most of its parts and modules. The hard work is getting the right revision, in the right sequence, before the line needs it.</p>
       <a class="hero-link" href="#buying-loop">Explore the buying loop <i class="bi bi-arrow-down-right"></i></a>
       <div class="hero-footnote"><i class="bi bi-info-circle"></i><span>Industry pattern · exact sourcing mix varies by OEM and vehicle program.</span></div>
@@ -62,6 +62,56 @@
       </svg>
       <div class="visual-legend"><span><i class="legend-dot legend-dot--supplier"></i>Supplier inbound</span><span><i class="legend-dash"></i>Internal material flow</span><span class="legend-chip">BOM → LINE</span></div>
     </div>
+  </section>
+
+  @if (partial()) { <div class="supply-api-notice" role="status"><i class="bi bi-exclamation-circle"></i> Some data sources did not respond. Successful records remain available below.</div> }
+  <section class="supply-metrics" aria-label="Live supply chain metrics">
+    <article><span class="supply-metric-icon supply-metric-icon--blue"><i class="bi bi-boxes"></i></span><div><small>SUPPLIER NETWORK</small><strong>{{ suppliersLoading() ? '—' : (data.suppliers.length | number) }}</strong><em>{{ suppliersLoading() ? 'Syncing API' : 'Returned supplier records' }}</em></div></article>
+    <article><span class="supply-metric-icon supply-metric-icon--green"><i class="bi bi-box-seam"></i></span><div><small>INVENTORY ITEMS</small><strong>{{ inventoryLoading() ? '—' : (data.stock.length | number) }}</strong><em>{{ inventoryLoading() ? 'Syncing API' : 'Returned stock records' }}</em></div></article>
+    <article><span class="supply-metric-icon supply-metric-icon--purple"><i class="bi bi-cart-check"></i></span><div><small>PURCHASE ORDERS</small><strong>{{ purchaseOrdersLoading() ? '—' : (data.purchaseOrders.length | number) }}</strong><em>{{ purchaseOrdersLoading() ? 'Syncing API' : pendingPurchaseOrders + ' not yet received' }}</em></div></article>
+    <article><span class="supply-metric-icon supply-metric-icon--orange"><i class="bi bi-currency-exchange"></i></span><div><small>ORDER VALUE</small><strong>{{ purchaseOrdersLoading() ? '—' : (purchaseOrderValue | number:'1.0-0') }}</strong><em>Total of returned purchase orders</em></div></article>
+    <article><span class="supply-metric-icon supply-metric-icon--red"><i class="bi bi-exclamation-triangle"></i></span><div><small>ZERO AVAILABLE</small><strong>{{ inventoryLoading() ? '—' : (zeroAvailableCount | number) }}</strong><em>Items fully reserved or out of stock</em></div></article>
+  </section>
+  <section class="live-records" id="live-records">
+    <div class="section-heading section-heading--records"><div><span class="section-kicker">CONNECTED BACKEND RECORDS</span><h3>Suppliers and purchase orders</h3><p>Live records returned by the supply chain API.</p></div><span class="live-tag"><i></i> API CONNECTED</span></div>
+    <div class="record-tabs" role="tablist" aria-label="Backend records">
+      <button type="button" role="tab" [attr.aria-selected]="tab()==='suppliers'" [class.is-active]="tab()==='suppliers'" (click)="tab.set('suppliers')"><i class="bi bi-building"></i> Suppliers <span>{{ data.suppliers.length }}</span></button>
+      <button type="button" role="tab" [attr.aria-selected]="tab()==='pos'" [class.is-active]="tab()==='pos'" (click)="tab.set('pos')"><i class="bi bi-file-earmark-text"></i> Purchase orders <span>{{ data.purchaseOrders.length }}</span></button>
+    </div>
+    @if (tab()==='suppliers') {
+      @if (supplierError()) { <div class="supply-api-notice" role="alert">{{ supplierError() }}</div> }
+      @if (canManage()) { <div class="supplier-form-tools"><button type="button" (click)="openSupplierForm()">Add supplier</button></div> }
+      @if (supplierFormOpen()) {
+        <form class="supplier-edit-form" [formGroup]="supplierForm" (ngSubmit)="saveSupplier()">
+          <h4>{{ editingSupplierId() ? 'Edit supplier' : 'Add supplier' }}</h4>
+          <label>Code<input formControlName="code" maxlength="30" [readonly]="!!editingSupplierId()"></label><label>Company<input formControlName="company" maxlength="150"></label>
+          <label>Category<input formControlName="category" maxlength="60"></label><label>Country<input formControlName="country" maxlength="60"></label>
+          <label>Rating (0–5)<input type="number" min="0" max="5" step="0.1" formControlName="rating"></label><label>Contact email<input type="email" formControlName="contactEmail" maxlength="120"></label>
+          <label>Phone<input formControlName="phone" maxlength="30"></label><label>Status<select formControlName="status"><option>ACTIVE</option><option>INACTIVE</option><option>ON_HOLD</option></select></label>
+          <div class="supplier-form-actions"><button type="submit" [disabled]="supplierBusy()">{{ supplierBusy() ? 'Saving…' : 'Save supplier' }}</button><button type="button" (click)="supplierFormOpen.set(false)">Cancel</button></div>
+        </form>
+      }
+      <div class="table-card live-table-wrap"><table class="live-table"><thead><tr><th>SUPPLIER CODE</th><th>COMPANY</th><th>CATEGORY</th><th>COUNTRY</th><th>RATING</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>
+        @if (suppliersLoading()) { <tr><td colspan="7" class="empty-record"><span class="table-spinner"></span>Loading supplier records…</td></tr> }
+        @for (supplier of data.suppliers; track supplier.id) { <tr><td class="mono">{{ supplier.code }}</td><td><strong>{{ supplier.company }}</strong></td><td>{{ supplier.category || '—' }}</td><td>{{ supplier.country || '—' }}</td><td class="rating">{{ supplier.rating }} <span>/ 5</span></td><td><span class="status-pill" [ngStyle]="statusColor(supplier.status)">{{ supplier.status }}</span></td><td class="po-actions">@if (canManage()) { <button type="button" (click)="openSupplierForm(supplier)">Edit</button> } @if (canDeleteSupplier()) { <button type="button" (click)="deleteSupplier(supplier)">Delete</button> } @if (!canManage() && !canDeleteSupplier()) { <span>—</span> }</td></tr> }
+        @if (!suppliersLoading() && data.suppliers.length===0) { <tr><td colspan="7" class="empty-record">No supplier records returned by the backend.</td></tr> }
+      </tbody></table></div>
+    }
+    @if (tab()==='pos') {
+      @if (actionError()) { <div class="supply-api-notice" role="alert">{{ actionError() }}</div> }
+      <div class="table-card live-table-wrap"><table class="live-table"><thead><tr><th>PO NUMBER</th><th>SUPPLIER CODE</th><th>ORDER DATE</th><th>LINES</th><th>TOTAL</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody>
+        @if (purchaseOrdersLoading()) { <tr><td colspan="7" class="empty-record"><span class="table-spinner"></span>Loading purchase orders…</td></tr> }
+        @for (order of data.purchaseOrders; track order.backendId) { <tr><td class="mono">{{ order.id }}</td><td>{{ order.supplier }}</td><td>{{ order.date }}</td><td>{{ order.items }}</td><td class="amount">{{ order.total | number:'1.2-2' }}</td><td><span class="status-pill" [ngStyle]="statusColor(order.status)">{{ order.status }}</span></td><td class="po-actions">
+          @if (canManage() && order.status==='DRAFT') { <button type="button" [disabled]="actionBusy()===order.backendId" (click)="advanceOrder(order, 'SUBMITTED')">Submit</button> }
+          @if (canManage() && order.status==='SUBMITTED') { <button type="button" [disabled]="actionBusy()===order.backendId" (click)="advanceOrder(order, 'APPROVED')">Approve</button> }
+          @if (canManage() && order.status==='APPROVED') { <button type="button" [disabled]="actionBusy()===order.backendId" (click)="advanceOrder(order, 'ISSUED')">Issue</button> }
+          @if (canManage() && order.status==='ISSUED') { <button type="button" [disabled]="actionBusy()===order.backendId" (click)="receiveOrder(order)">Receive</button> }
+          @if (canManage() && order.status==='RECEIVED') { <button type="button" [disabled]="actionBusy()===order.backendId" (click)="advanceOrder(order, 'CLOSED')">Close</button> }
+          @if (!canManage() || ['CANCELLED','CLOSED'].includes(order.status)) { <span>—</span> }
+        </td></tr> }
+        @if (!purchaseOrdersLoading() && data.purchaseOrders.length===0) { <tr><td colspan="7" class="empty-record">No purchase orders returned by the backend.</td></tr> }
+      </tbody></table></div>
+    }
   </section>
 
   <nav class="section-nav" aria-label="Procurement overview sections">
@@ -146,28 +196,6 @@
     <div class="veynax-heading"><div><span class="section-kicker">06 · WHAT VEYNAX NEEDS TO KNOW</span><h3>Make shortages visible<br>before the line feels them.</h3><p>Connect engineering demand to supplier commitments, receipts and vehicle consumption.</p></div><div class="priority-badge"><i class="bi bi-lightning-charge-fill"></i><span>FIRST AUTOMATION<br><strong>Shortage risk by need date</strong></span></div></div>
     <div class="needs-grid">@for (need of systemNeeds; track need.title) { <article class="need-card"><span><i [class]="'bi ' + need.icon"></i></span><div><h4>{{ need.title }}</h4><p>{{ need.detail }}</p></div></article> }</div>
     <div class="automation-callout"><div class="automation-icon"><i class="bi bi-activity"></i></div><div><span class="section-kicker">RECOMMENDED FIRST AUTOMATION</span><h4>Compare scheduled BOM demand with stock and confirmed inbound supply.</h4><p>Raise an owned alert for every part projected to run out before its next confirmed delivery. Include quantity at risk, need-by time, supplier and the latest committed date.</p></div><a href="#live-records" class="automation-link">View connected records <i class="bi bi-arrow-down-right"></i></a></div>
-  </section>
-
-  <section class="live-records" id="live-records">
-    <div class="section-heading section-heading--records"><div><span class="section-kicker">CONNECTED BACKEND RECORDS</span><h3>Supplier and purchase order data</h3><p>Live lists from the current backend API. Receiving, ASN, invoice match and supplier scorecards need additional endpoints.</p></div><span class="live-tag"><i></i> API CONNECTED</span></div>
-    <div class="record-tabs" role="tablist" aria-label="Backend records">
-      <button type="button" role="tab" [attr.aria-selected]="tab()==='suppliers'" [class.is-active]="tab()==='suppliers'" (click)="tab.set('suppliers')"><i class="bi bi-building"></i> Suppliers <span>{{ data.suppliers.length }}</span></button>
-      <button type="button" role="tab" [attr.aria-selected]="tab()==='pos'" [class.is-active]="tab()==='pos'" (click)="tab.set('pos')"><i class="bi bi-file-earmark-text"></i> Purchase orders <span>{{ data.purchaseOrders.length }}</span></button>
-    </div>
-    @if (tab()==='suppliers') {
-      <div class="table-card live-table-wrap"><table class="live-table"><thead><tr><th>SUPPLIER CODE</th><th>COMPANY</th><th>CATEGORY</th><th>COUNTRY</th><th>RATING</th><th>STATUS</th></tr></thead><tbody>
-        @if (suppliersLoading()) { <tr><td colspan="6" class="empty-record"><span class="table-spinner"></span>Loading supplier records…</td></tr> }
-        @for (supplier of data.suppliers; track supplier.id) { <tr><td class="mono">{{ supplier.code }}</td><td><strong>{{ supplier.company }}</strong></td><td>{{ supplier.category || '—' }}</td><td>{{ supplier.country || '—' }}</td><td class="rating">{{ supplier.rating }} <span>/ 5</span></td><td><span class="status-pill" [ngStyle]="statusColor(supplier.status)">{{ supplier.status }}</span></td></tr> }
-        @if (!suppliersLoading() && data.suppliers.length===0) { <tr><td colspan="6" class="empty-record">No supplier records returned by the backend.</td></tr> }
-      </tbody></table></div>
-    }
-    @if (tab()==='pos') {
-      <div class="table-card live-table-wrap"><table class="live-table"><thead><tr><th>PO NUMBER</th><th>SUPPLIER CODE</th><th>ORDER DATE</th><th>LINES</th><th>TOTAL</th><th>STATUS</th></tr></thead><tbody>
-        @if (purchaseOrdersLoading()) { <tr><td colspan="6" class="empty-record"><span class="table-spinner"></span>Loading purchase orders…</td></tr> }
-        @for (order of data.purchaseOrders; track order.id) { <tr><td class="mono">{{ order.id }}</td><td>{{ order.supplier }}</td><td>{{ order.date }}</td><td>{{ order.items }}</td><td class="amount">{{ order.total | number:'1.2-2' }}</td><td><span class="status-pill" [ngStyle]="statusColor(order.status)">{{ order.status }}</span></td></tr> }
-        @if (!purchaseOrdersLoading() && data.purchaseOrders.length===0) { <tr><td colspan="6" class="empty-record">No purchase orders returned by the backend.</td></tr> }
-      </tbody></table></div>
-    }
   </section>
 
   <footer class="procurement-foot"><span>VEYNAX · MATERIAL FLOW</span><span>Planning signal → supplier commitment → verified receipt → vehicle trace</span></footer>

@@ -1,3 +1,4 @@
+
 package com.abc.SpringBootSecqurityEx.secqurity;
 
 import com.abc.SpringBootSecqurityEx.entity.User;
@@ -13,122 +14,125 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
 public class JwtUtil {
 
     @Value("${app.jwt.secret}")
-    private String SECRET_KEY;
+    private String secretKey;
 
     @Value("${app.jwt.expiration}")
-    private long EXPIRATION_TIME;
+    private long expirationTime;
+
+    private SecretKey signingKey;
 
     @PostConstruct
     void validateConfiguration() {
 
-        if (EXPIRATION_TIME <= 0) {
+        if (expirationTime <= 0) {
             throw new IllegalStateException(
-                    "JWT_EXPIRATION must be positive"
+                    "JWT expiration must be positive"
             );
         }
 
-        // Validate secret during application startup
-        getSigningKey();
+        try {
+            byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+
+            // HS256 requires at least 256 bits (32 bytes).
+            if (keyBytes.length < 32) {
+                throw new IllegalStateException(
+                        "JWT secret must contain at least 32 decoded bytes"
+                );
+            }
+
+            signingKey = Keys.hmacShaKeyFor(keyBytes);
+
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException(
+                    "Invalid JWT secret. Provide a valid Base64-encoded secret.",
+                    e
+            );
+        }
     }
 
     private SecretKey getSigningKey() {
+        return signingKey;
+    }
 
-        return Keys.hmacShaKeyFor(
-                Decoders.BASE64.decode(SECRET_KEY)
+    // Generate Token
+    public String generateToken(String username) {
+        return buildToken(username, null, null);
+    }
+
+    // Generate Token From User
+    public String generateTokenFromUsername(User user) {
+
+        List<String> roles = user.getRoles()
+                .stream()
+                .map(ERole::name)
+                .collect(Collectors.toList());
+
+        return buildToken(
+                user.getUserName(),
+                roles,
+                user.getEmail()
         );
     }
 
-    // =========================================================
-    // Generate Token
-    // =========================================================
+    // Common Token Builder
+    private String buildToken(
+            String username,
+            List<String> roles,
+            String email
+    ) {
 
-    public String generateToken(String username) {
+        Date now = new Date();
+        Date expiration = new Date(
+                now.getTime() + expirationTime
+        );
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(username)
-                .issuedAt(new Date())
-                .expiration(
-                        new Date(
-                                System.currentTimeMillis()
-                                        + EXPIRATION_TIME
-                        )
-                )
+                .issuedAt(now)
+                .expiration(expiration);
+
+        if (roles != null) {
+            builder.claim("roles", roles);
+        }
+
+        if (email != null) {
+            builder.claim("email", email);
+        }
+
+        return builder
                 .signWith(getSigningKey())
                 .compact();
     }
 
-    // =========================================================
-    // Generate Token From User
-    // =========================================================
-
-    public String generateTokenFromUsername(User user) {
-
-        return Jwts.builder()
-                .subject(user.getUserName())
-                .claim(
-                        "roles",
-                        user.getRoles()
-                                .stream()
-                                .map(ERole::name)
-                                .collect(Collectors.toList())
-                )
-                .claim("email", user.getEmail())
-                .issuedAt(new Date())
-                .expiration(
-                        new Date(
-                                System.currentTimeMillis()
-                                        + EXPIRATION_TIME
-                        )
-                )
-                .signWith(getSigningKey())
-                .compact();
-    }
-
-    // =========================================================
     // Validate Token
-    // =========================================================
-
     public boolean validateToken(String token) {
 
+        if (token == null || token.isBlank()) {
+            return false;
+        }
+
         try {
-
-            Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token);
-
+            extractAllClaims(token);
             return true;
 
         } catch (JwtException | IllegalArgumentException e) {
-
             return false;
         }
     }
 
-    // =========================================================
     // Extract Username
-    // =========================================================
-
     public String extractUsername(String token) {
-
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+        return extractAllClaims(token).getSubject();
     }
 
-    // =========================================================
     // Extract Claims
-    // =========================================================
-
     public Claims extractAllClaims(String token) {
 
         return Jwts.parser()

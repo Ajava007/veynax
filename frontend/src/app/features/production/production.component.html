@@ -24,40 +24,46 @@
     @if (tab()==='wos') {
       <div class="vx-card p-0 overflow-auto">
         <table class="table vx-table table-hover mb-0">
-          <thead><tr><th>Work Order</th><th>Model</th><th class="text-end">Qty</th><th class="text-end">Done</th><th class="text-end">Rejected</th><th>Line</th><th>Progress</th><th>Status</th></tr></thead>
+          <thead><tr><th>Work Order</th><th>Model</th><th class="text-end">Qty</th><th class="text-end">Done</th><th class="text-end">Rejected</th><th>Line</th><th>Progress</th><th>Status</th><th>Action</th></tr></thead>
           <tbody>
             @for (w of data.workOrders; track w.id) {
               <tr><td class="mono">{{ w.id }}</td><td class="fw-semibold">{{ w.model }}</td><td class="text-end mono">{{ w.qty }}</td>
               <td class="text-end mono">{{ w.completed }}</td><td class="text-end mono" [style.color]="w.rejected>0?'#d46a5a':'inherit'">{{ w.rejected }}</td><td>{{ w.line }}</td>
               <td style="min-width:120px;"><div style="height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;"><div [style.width.%]="(w.completed/w.qty)*100" style="height:100%;background:linear-gradient(90deg,#c47046,#7ba8b8);"></div></div></td>
-              <td><vx-status-badge [label]="w.status" /></td></tr>
+              <td><vx-status-badge [label]="w.status" /></td><td><button class="btn btn-sm btn-outline-primary" (click)="selectWorkOrder(w)">Operate</button></td></tr>
             }
           </tbody>
         </table>
-        <p class="small text-muted p-2 mb-0">Status transitions enforced backend: PLANNED → RELEASED → IN_PROGRESS → PAUSED → COMPLETED / CANCELLED. No arbitrary jumps.</p>
+        <p class="small text-muted p-2 mb-0">Allowed backend transitions: DRAFT → RELEASED → IN_PROGRESS → PAUSED → IN_PROGRESS / COMPLETED. Cancellation follows each order's current state.</p>
       </div>
     }
 
     @if (tab()==='shopfloor') {
       <div class="vx-card p-4">
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-          <div><span class="badge" style="background:rgba(111,191,115,.18);color:#6fbf73;">RUNNING</span> <strong class="ms-2">{{ sf.line }} · {{ sf.workOrder }}</strong></div>
-          <div class="text-muted small">Operator view — admin functions hidden</div>
+          <div><vx-status-badge [label]="shopFloorStatus" /> <strong class="ms-2">{{ sf.line || 'No line selected' }} · {{ sf.workOrder }}</strong></div>
+          <div class="text-muted small">Work-order state is read from and updated through the backend.</div>
         </div>
         <div class="row g-3 mb-3">
           <div class="col-6 col-md-3"><div class="p-3 rounded" style="background:rgba(0,0,0,.2);border:1px solid rgba(232,229,223,.12);"><div class="text-muted small text-uppercase">Model</div><div class="fw-bold">{{ sf.model }}</div></div></div>
           <div class="col-6 col-md-3"><div class="p-3 rounded" style="background:rgba(0,0,0,.2);border:1px solid rgba(232,229,223,.12);"><div class="text-muted small text-uppercase">Operation</div><div class="fw-bold">{{ sf.operation }}</div></div></div>
           <div class="col-6 col-md-3"><div class="p-3 rounded" style="background:rgba(0,0,0,.2);border:1px solid rgba(232,229,223,.12);"><div class="text-muted small text-uppercase">Target / Actual</div><div class="fw-bold mono">{{ sf.actual }} / {{ sf.target }}</div></div></div>
-          <div class="col-6 col-md-3"><div class="p-3 rounded" style="background:rgba(0,0,0,.2);border:1px solid rgba(232,229,223,.12);"><div class="text-muted small text-uppercase">Takt time</div><div class="fw-bold mono">{{ sf.taktMin }} min</div></div></div>
+          <div class="col-6 col-md-3"><div class="p-3 rounded" style="background:rgba(0,0,0,.2);border:1px solid rgba(232,229,223,.12);"><div class="text-muted small text-uppercase">Takt time</div><div class="fw-bold mono">Not reported</div></div></div>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-          <button class="btn btn-primary btn-sm"><i class="bi bi-play-fill me-1"></i>Start</button>
-          <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-pause-fill me-1"></i>Pause</button>
-          <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-check-lg me-1"></i>Complete Qty</button>
-          <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-exclamation-triangle me-1"></i>Report Defect</button>
-          <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-tools me-1"></i>Report Downtime</button>
-        </div>
-        <p class="small text-muted mt-3 mb-0">Reject: {{ sf.reject }} · Rework: {{ sf.rework }} · Operators: {{ sf.operators }} · Machine: {{ sf.machine }}</p>
+        @if (selectedWorkOrder(); as current) {
+          <div class="d-flex flex-wrap align-items-end gap-2">
+            @if (current.status === 'DRAFT') { <button class="btn btn-primary btn-sm" [disabled]="busy()" (click)="transition('RELEASED')">Release</button> }
+            @if (current.status === 'RELEASED' || current.status === 'PAUSED') { <button class="btn btn-primary btn-sm" [disabled]="busy()" (click)="transition('IN_PROGRESS')"><i class="bi bi-play-fill me-1"></i>{{ current.status === 'PAUSED' ? 'Resume' : 'Start' }}</button> }
+            @if (current.status === 'IN_PROGRESS') {
+              <button class="btn btn-outline-secondary btn-sm" [disabled]="busy()" (click)="transition('PAUSED')"><i class="bi bi-pause-fill me-1"></i>Pause</button>
+              <label class="small">Produced <input class="form-control form-control-sm" type="number" min="0" [max]="current.qty" [(ngModel)]="producedQuantity"></label>
+              <label class="small">Rejected <input class="form-control form-control-sm" type="number" min="0" [max]="current.qty" [(ngModel)]="rejectedQuantity"></label>
+              <button class="btn btn-success btn-sm" [disabled]="busy()" (click)="transition('COMPLETED')"><i class="bi bi-check-lg me-1"></i>Complete</button>
+            }
+            @if (current.status === 'DRAFT' || current.status === 'RELEASED' || current.status === 'PAUSED') { <button class="btn btn-outline-danger btn-sm" [disabled]="busy()" (click)="transition('CANCELLED')">Cancel work order</button> }
+          </div>
+        } @else { <p class="small text-muted mb-0">Select a work order from the list to see actions allowed by its current status.</p> }
+        <p class="small text-muted mt-3 mb-0">Reject: {{ sf.reject }} · Rework, operator count, and machine telemetry are not available from current APIs.</p>
       </div>
     }
   

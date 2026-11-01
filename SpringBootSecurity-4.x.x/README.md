@@ -9,11 +9,13 @@ This API uses stateless JWT authentication and a fixed role set stored as enum v
 Set these environment variables before starting the application:
 
 - `JWT_SECRET`: Base64 encoded random secret of at least 32 bytes. Use a new secret in each environment and rotate any secret previously committed to source control.
-- `DB_URL`, `DB_USER`, `DB_PASS`: PostgreSQL connection settings. Local defaults are provided for the URL and username; set the password for your local database.
-- `BOOTSTRAP_ADMIN_USERNAME`, `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD`: Optional first administrator credentials. Set all three values; the password must be at least 12 characters. The account is created only if its username does not already exist.
-- `CORS_ALLOWED_ORIGINS`: Comma separated allowed origin patterns. Defaults to `http://localhost:4200`.
+- `DB_URL`, `DB_USER`, `DB_PASS`: PostgreSQL connection settings. URL and username default to local PostgreSQL; `DB_PASS` is required.
+- `APP_BOOTSTRAP_ENABLED`: Defaults to `false`. Set to `true` only for an intentional first-account bootstrap, together with the `BOOTSTRAP_SUPER_ADMIN_PASSWORD` value below. Bootstrap users are never created implicitly.
+- `BOOTSTRAP_SUPER_ADMIN_PASSWORD`: Required only when bootstrap is explicitly enabled; use a unique password of at least 12 characters. Other optional seed roles use the corresponding `BOOTSTRAP_FACTORY_ADMIN_PASSWORD`, `BOOTSTRAP_MANAGER_PASSWORD`, `BOOTSTRAP_SUPERVISOR_PASSWORD`, `BOOTSTRAP_OPERATOR_PASSWORD`, `BOOTSTRAP_QUALITY_INSPECTOR_PASSWORD`, or `BOOTSTRAP_VIEWER_PASSWORD` variables.
+- `CORS_ALLOWED_ORIGIN_PATTERNS`: Comma separated allowed origin patterns. Defaults to `http://localhost:4200`.
+- `APP_DEMO_DATA_ENABLED`: Defaults to `false`; set to `true` only in a disposable local development database to insert synthetic sample rows into empty tables.
 
-For local development, Spring loads values from the ignored project-root `.env` file. A random `JWT_SECRET` has been generated there for this checkout; set `DB_PASS` in that file if your local PostgreSQL requires a password. Keep `.env` out of source control.
+For local development, copy `.env.example` to the ignored project-root `.env`, then set a newly generated Base64 `JWT_SECRET` (at least 32 random bytes) and `DB_PASS`. Keep `.env` out of source control. Existing database rows are preserved; demo rows are opt-in. The current Hibernate `ddl-auto=update` setting remains until the deployed schema has been inventoried and a reviewed migration baseline is prepared.
 
 The available roles are defined in `ERole`; the app does not create role rows or allow runtime role creation. On startup, existing assignments from the old `userrole` table are copied to `user_roles`; the old table is left untouched. Custom database roles that are not in `ERole` are skipped. It does not create a default admin account or include a default JWT signing secret. Docker files and the Docker based Render manifest have been removed; run the application with the Maven wrapper or your IDE.
 

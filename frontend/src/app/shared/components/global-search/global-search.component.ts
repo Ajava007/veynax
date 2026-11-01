@@ -30,6 +30,8 @@ export class GlobalSearchComponent {
       .forEach(p => r.push({ kind: 'Part', id: p.code, label: p.code + ' · ' + p.name, route: '/engineering' }));
     this.data.workOrders.filter(w => w.id.toLowerCase().includes(q))
       .forEach(w => r.push({ kind: 'Work Order', id: w.id, label: w.id + ' · ' + w.model, route: '/production' }));
+    this.data.purchaseOrders.filter(po => po.id.toLowerCase().includes(q) || po.supplier.toLowerCase().includes(q))
+      .forEach(po => r.push({ kind: 'Purchase Order', id: po.id, label: po.id + ' · ' + po.supplier, route: '/supply-chain' }));
     this.data.suppliers.filter(s => s.company.toLowerCase().includes(q) || String(s.code).toLowerCase().includes(q))
       .forEach(s => r.push({ kind: 'Supplier', id: String(s.code), label: s.code + ' · ' + s.company, route: '/supply-chain' }));
     this.data.employees.filter(e => e.name.toLowerCase().includes(q))

@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface VehicleModelRepository extends JpaRepository<VehicleModel, Long> {
     boolean existsByModelCode(String modelCode);
+    java.util.Optional<VehicleModel> findByModelCodeIgnoreCase(String modelCode);
 }

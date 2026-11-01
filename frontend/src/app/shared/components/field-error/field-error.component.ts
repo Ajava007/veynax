@@ -1,4 +1,4 @@
-import { Component, Input, computed } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AbstractControl } from '@angular/forms';
 import { firstValidationMessage } from '../../validation/validation-messages';
@@ -13,10 +13,10 @@ import { firstValidationMessage } from '../../validation/validation-messages';
 export class FieldErrorComponent {
   @Input({ required: true }) control!: AbstractControl | null;
 
-  message = computed(() => {
+  get message(): string | null {
     const c = this.control;
     if (!c || !c.errors) return null;
     if (!(c.touched || c.dirty)) return null;
     return firstValidationMessage(c.errors);
-  });
+  }
 }

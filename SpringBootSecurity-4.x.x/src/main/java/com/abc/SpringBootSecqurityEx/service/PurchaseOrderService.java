@@ -6,6 +6,8 @@ import com.abc.SpringBootSecqurityEx.dtos.InventoryDtos;
 import com.abc.SpringBootSecqurityEx.entity.PurchaseOrder;
 import com.abc.SpringBootSecqurityEx.entity.PurchaseOrderItem;
 import com.abc.SpringBootSecqurityEx.repository.PurchaseOrderRepository;
+import com.abc.SpringBootSecqurityEx.repository.PartRepository;
+import com.abc.SpringBootSecqurityEx.repository.SupplierRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +18,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 public class PurchaseOrderService {
@@ -33,10 +37,15 @@ public class PurchaseOrderService {
 
     private final PurchaseOrderRepository repository;
     private final InventoryService inventoryService;
+    private final SupplierRepository supplierRepository;
+    private final PartRepository partRepository;
 
-    public PurchaseOrderService(PurchaseOrderRepository repository, InventoryService inventoryService) {
+    public PurchaseOrderService(PurchaseOrderRepository repository, InventoryService inventoryService,
+                                SupplierRepository supplierRepository, PartRepository partRepository) {
         this.repository = repository;
         this.inventoryService = inventoryService;
+        this.supplierRepository = supplierRepository;
+        this.partRepository = partRepository;
     }
 
     @Transactional(readOnly = true)
@@ -49,6 +58,7 @@ public class PurchaseOrderService {
 
     @Transactional
     public SupplyChainDtos.PurchaseOrderResponse create(SupplyChainDtos.PurchaseOrderRequest req) {
+        validateReferences(req);
         if (repository.existsByPoNumber(req.poNumber())) {
             throw new IllegalStateException("PO number already exists: " + req.poNumber());
         }
@@ -65,6 +75,7 @@ public class PurchaseOrderService {
 
     @Transactional
     public SupplyChainDtos.PurchaseOrderResponse update(Long id, SupplyChainDtos.PurchaseOrderRequest req) {
+        validateReferences(req);
         PurchaseOrder po = getOrThrow(id);
         if (!"DRAFT".equals(po.getStatus())) {
             throw new IllegalStateException("Only DRAFT purchase orders can be edited. Current status: " + po.getStatus());
@@ -83,7 +94,8 @@ public class PurchaseOrderService {
 
     @Transactional
     public SupplyChainDtos.PurchaseOrderResponse transition(Long id, SupplyChainDtos.StatusTransitionRequest req) {
-        PurchaseOrder po = getOrThrow(id);
+        PurchaseOrder po = repository.findByIdForUpdate(id)
+                .orElseThrow(() -> new EntityNotFoundException("Purchase order not found: " + id));
         String target = req.targetStatus().toUpperCase();
         if ("RECEIVED".equals(target)) {
             throw new IllegalStateException("Use the receive action so inventory is updated with the purchase order.");
@@ -94,13 +106,14 @@ public class PurchaseOrderService {
                     + ". Allowed: " + allowed);
         }
         po.setStatus(target);
-        if ("APPROVED".equals(target)) po.setApprovedBy(req.actor());
+        if ("APPROVED".equals(target)) po.setApprovedBy(currentActor());
         return toResponse(repository.save(po));
     }
 
     @Transactional
     public SupplyChainDtos.PurchaseOrderResponse receive(Long id, SupplyChainDtos.ReceiveRequest request) {
-        PurchaseOrder po = getOrThrow(id);
+        PurchaseOrder po = repository.findByIdForUpdate(id)
+                .orElseThrow(() -> new EntityNotFoundException("Purchase order not found: " + id));
         if (!"ISSUED".equals(po.getStatus())) {
             throw new IllegalStateException("Only ISSUED purchase orders can be received. Current: " + po.getStatus());
         }
@@ -114,6 +127,27 @@ public class PurchaseOrderService {
         }
         po.setStatus("RECEIVED");
         return toResponse(repository.save(po));
+    }
+
+    private String currentActor() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.isAuthenticated()
+                && !"anonymousUser".equals(authentication.getPrincipal())
+                ? authentication.getName() : "system";
+    }
+
+    private void validateReferences(SupplyChainDtos.PurchaseOrderRequest request) {
+        var supplier = supplierRepository.findByCodeIgnoreCase(request.supplierCode().trim())
+                .orElseThrow(() -> new EntityNotFoundException("Supplier not found: " + request.supplierCode()));
+        if (!"ACTIVE".equalsIgnoreCase(supplier.getStatus())) {
+            throw new IllegalStateException("Purchase orders cannot be placed with a " + supplier.getStatus() + " supplier.");
+        }
+        for (SupplyChainDtos.PoItemRequest item : request.items()) {
+            if (item.partCode() != null && !item.partCode().isBlank()
+                    && !partRepository.existsByPartCodeIgnoreCase(item.partCode().trim())) {
+                throw new EntityNotFoundException("Part not found: " + item.partCode());
+            }
+        }
     }
 
     @Transactional

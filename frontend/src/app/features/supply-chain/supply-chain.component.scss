@@ -6,6 +6,18 @@
   width: min(100%, 1560px); margin: 0 auto; color: var(--ink); color-scheme: light;
 }
 .procurement-page * { box-sizing: border-box; }
+.po-actions { white-space: nowrap; }
+.po-actions button { border: 1px solid #39718a; border-radius: 6px; padding: 5px 9px; color: #e8f6fb; background: #12394b; font: inherit; cursor: pointer; }
+.po-actions button:hover:not(:disabled) { background: #19536c; }
+.po-actions button:disabled { opacity: .55; cursor: wait; }
+.supplier-form-tools { display: flex; justify-content: flex-end; margin: 10px 0; }
+.supplier-form-tools button, .supplier-form-actions button { border: 1px solid #39718a; border-radius: 6px; padding: 7px 12px; color: #e8f6fb; background: #12394b; cursor: pointer; }
+.supplier-edit-form { display: grid; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: 10px; margin: 10px 0 16px; padding: 16px; border: 1px solid #294956; border-radius: 10px; background: #0c2531; color: #dcecf0; }
+.supplier-edit-form h4 { grid-column: 1 / -1; margin: 0; }
+.supplier-edit-form label { display: grid; gap: 5px; color: #a9c2ca; font-size: 12px; }
+.supplier-edit-form input, .supplier-edit-form select { width: 100%; min-width: 0; border: 1px solid #315666; border-radius: 5px; padding: 7px; color: #e8f6fb; background: #081b25; }
+.supplier-form-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+@media (max-width: 720px) { .supplier-edit-form { grid-template-columns: repeat(2, minmax(120px, 1fr)); } }
 .procurement-page h2, .procurement-page h3, .procurement-page h4, .procurement-page p { margin-top: 0; }
 .procurement-page a { color: inherit; text-decoration: none; }
 

@@ -9,6 +9,8 @@ import com.abc.SpringBootSecqurityEx.repository.CustomerRepository;
 import com.abc.SpringBootSecqurityEx.repository.SalesPaymentRepository;
 import com.abc.SpringBootSecqurityEx.repository.SalesOrderRepository;
 import com.abc.SpringBootSecqurityEx.repository.YardSlotRepository;
+import com.abc.SpringBootSecqurityEx.repository.DealerRepository;
+import com.abc.SpringBootSecqurityEx.repository.VehicleModelRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,13 +39,18 @@ public class SalesOrderService {
     private final SalesPaymentRepository paymentRepository;
     private final CustomerRepository customerRepository;
     private final YardSlotRepository yardSlotRepository;
+    private final DealerRepository dealerRepository;
+    private final VehicleModelRepository vehicleModelRepository;
 
     public SalesOrderService(SalesOrderRepository soRepository, SalesPaymentRepository paymentRepository, CustomerRepository customerRepository,
-                             YardSlotRepository yardSlotRepository) {
+                             YardSlotRepository yardSlotRepository, DealerRepository dealerRepository,
+                             VehicleModelRepository vehicleModelRepository) {
         this.soRepository = soRepository;
         this.paymentRepository = paymentRepository;
         this.customerRepository = customerRepository;
         this.yardSlotRepository = yardSlotRepository;
+        this.dealerRepository = dealerRepository;
+        this.vehicleModelRepository = vehicleModelRepository;
     }
 
     @Transactional(readOnly = true)
@@ -56,8 +63,21 @@ public class SalesOrderService {
         if (soRepository.existsBySoNumber(req.soNumber())) {
             throw new IllegalStateException("Sales order number already exists: " + req.soNumber());
         }
-        if (!customerRepository.existsById(req.customerId())) {
-            throw new EntityNotFoundException("Customer not found: " + req.customerId());
+        if (!customerRepository.existsById(req.customerId())) throw new EntityNotFoundException("Customer not found: " + req.customerId());
+        if (req.totalAmount() == null || req.totalAmount().signum() <= 0) {
+            throw new IllegalArgumentException("Sales order total must be greater than zero.");
+        }
+        var model = vehicleModelRepository.findByModelCodeIgnoreCase(req.modelCode().trim())
+                .orElseThrow(() -> new EntityNotFoundException("Vehicle model not found: " + req.modelCode()));
+        if (!"ACTIVE".equalsIgnoreCase(model.getStatus())) {
+            throw new IllegalStateException("Sales orders can only use ACTIVE vehicle models. Current status: " + model.getStatus());
+        }
+        if (req.dealerCode() != null && !req.dealerCode().isBlank()) {
+            var dealer = dealerRepository.findByCodeIgnoreCase(req.dealerCode().trim())
+                    .orElseThrow(() -> new EntityNotFoundException("Dealer not found: " + req.dealerCode()));
+            if (!"ACTIVE".equalsIgnoreCase(dealer.getStatus())) {
+                throw new IllegalStateException("Sales orders cannot be placed for a " + dealer.getStatus() + " dealer.");
+            }
         }
         SalesOrder so = SalesOrder.builder()
                 .soNumber(req.soNumber()).customerId(req.customerId()).dealerCode(req.dealerCode())
@@ -68,7 +88,7 @@ public class SalesOrderService {
 
     @Transactional
     public SalesDtos.SalesOrderResponse allocate(Long id, SalesDtos.AllocateRequest req) {
-        SalesOrder so = soRepository.findById(id)
+        SalesOrder so = soRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new EntityNotFoundException("Sales order not found: " + id));
         if (!"CONFIRMED".equals(so.getStatus())) {
             throw new IllegalStateException("Only CONFIRMED orders can be allocated. Current: " + so.getStatus());
@@ -90,7 +110,7 @@ public class SalesOrderService {
 
     @Transactional
     public SalesDtos.SalesOrderResponse transition(Long id, MaintenanceDtos.TransitionRequest req) {
-        SalesOrder so = soRepository.findById(id)
+        SalesOrder so = soRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new EntityNotFoundException("Sales order not found: " + id));
         String target = req.targetStatus().toUpperCase();
         Set<String> allowed = ALLOWED.getOrDefault(so.getStatus(), Set.of());
@@ -138,7 +158,7 @@ public class SalesOrderService {
 
     @Transactional
     public SalesDtos.PaymentResponse recordPayment(Long orderId, SalesDtos.PaymentRequest request) {
-        SalesOrder order = soRepository.findById(orderId)
+        SalesOrder order = soRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("Sales order not found: " + orderId));
         BigDecimal total = order.getTotalAmount();
         if (total == null || total.signum() <= 0) throw new IllegalStateException("Enter a positive sales order amount before recording payment.");

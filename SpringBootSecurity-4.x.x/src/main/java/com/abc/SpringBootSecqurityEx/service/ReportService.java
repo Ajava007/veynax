@@ -37,34 +37,7 @@ public class ReportService {
     // Spec §33: JasperReports PDF generation, audit-logged, parameterized.
     @Transactional
     public byte[] generateVinReport(String vin, String model, String buildDate, String qualityStatus, String generatedBy) throws JRException {
-        Map<String, Object> params = new HashMap<>();
-        params.put("vin", vin != null ? vin : "UNKNOWN");
-        params.put("model", model != null ? model : "UNKNOWN");
-        params.put("buildDate", buildDate != null ? buildDate : "UNKNOWN");
-        params.put("qualityStatus", qualityStatus != null ? qualityStatus : "UNKNOWN");
-        params.put("generatedAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-
-        InputStream template;
-        try {
-            template = new ClassPathResource("reports/vin_report.jrxml").getInputStream();
-        } catch (java.io.IOException e) {
-            throw new JRException("Report template not found: reports/vin_report.jrxml", e);
-        }
-        JasperReport compiled = JasperCompileManager.compileReport(template);
-        JasperPrint print = JasperFillManager.fillReport(compiled, params, new JREmptyDataSource());
-
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        JRPdfExporter exporter = new JRPdfExporter();
-        exporter.setExporterInput(new SimpleExporterInput(print));
-        exporter.setExporterOutput(new SimpleOutputStreamExporterOutput(out));
-        exporter.exportReport();
-        byte[] pdf = out.toByteArray();
-
-        // Immutable audit log of every report generation
-        reportRepository.save(GeneratedReport.builder()
-                .reportKey("VIN_GENEALOGY").reportName("VIN Genealogy Certificate — " + vin)
-                .format("PDF").generatedBy(generatedBy).fileSizeBytes((long) pdf.length)
-                .parameters("vin=" + vin + ";model=" + model).build());
-        return pdf;
+        throw new UnsupportedOperationException(
+                "VIN genealogy report requires a persisted vehicle genealogy record; a certificate cannot be generated from caller-supplied fields.");
     }
 }

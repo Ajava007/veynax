@@ -40,13 +40,13 @@ export class AuthService {
     );
   }
 
-  register(req: RegisterRequest): Observable<ApiResponse<AuthResponse>> {
+  register(req: RegisterRequest): Observable<ApiResponse<null>> {
     return this.http.post(`${this.base}/signup`, req, { responseType: 'text' }).pipe(
-      map(message => ({ success: true, message, data: null as any, timestamp: new Date().toISOString() }))
+      map(message => ({ success: true, message, data: null, timestamp: new Date().toISOString() }))
     );
   }
 
-  getToken(): string | null { return localStorage.getItem(TOKEN_KEY); }
+  getToken(): string | null { return this.currentUserSig()?.token ?? null; }
 
   logout() {
     localStorage.removeItem(TOKEN_KEY);
@@ -62,6 +62,23 @@ export class AuthService {
   }
 
   private loadUser(): AuthResponse | null {
-    try { const raw = localStorage.getItem(USER_KEY); return raw ? JSON.parse(raw) as AuthResponse : null; } catch { return null; }
+    try {
+      const raw = localStorage.getItem(USER_KEY);
+      if (!raw) {
+        localStorage.removeItem(TOKEN_KEY);
+        return null;
+      }
+      const user = JSON.parse(raw) as Partial<AuthResponse>;
+      if (typeof user.token !== 'string' || !user.token || typeof user.username !== 'string' || typeof user.role !== 'string') {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        return null;
+      }
+      return user as AuthResponse;
+    } catch {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      return null;
+    }
   }
 }

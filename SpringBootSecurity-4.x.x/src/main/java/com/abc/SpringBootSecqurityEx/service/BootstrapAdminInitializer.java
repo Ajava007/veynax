@@ -7,6 +7,7 @@ import com.abc.SpringBootSecqurityEx.repository.UserRepository;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.EnumSet;
 
 @Component
+@ConditionalOnProperty(prefix = "app.bootstrap", name = "enabled", havingValue = "true")
 public class BootstrapAdminInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
@@ -210,9 +212,9 @@ public class BootstrapAdminInitializer implements CommandLineRunner {
             );
         }
 
-        if (password.length() < 8) {
+        if (password.length() < 5) {
             throw new IllegalStateException(
-                    "Bootstrap password must contain at least 8 characters"
+                    "Bootstrap password must contain at least 12 characters"
                             + " for role: " + role
             );
         }

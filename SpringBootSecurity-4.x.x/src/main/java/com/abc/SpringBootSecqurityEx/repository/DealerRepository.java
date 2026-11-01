@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface DealerRepository extends JpaRepository<Dealer, Long> {
     boolean existsByCode(String code);
+    java.util.Optional<Dealer> findByCodeIgnoreCase(String code);
 }

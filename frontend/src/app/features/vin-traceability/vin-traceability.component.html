@@ -17,8 +17,8 @@
     @if (selectedVin()) {
       <div class="d-flex gap-2 mb-3">
         <button class="btn btn-primary btn-sm" (click)="loadHistory()">Refresh history</button>
-        <button class="btn btn-outline-secondary btn-sm" (click)="downloadReport()" [disabled]="reportLoading()">Download vehicle report</button>
       </div>
+      <div class="alert alert-info py-2 small" role="status">Downloadable genealogy reports are unavailable until vehicle genealogy records are stored by the backend.</div>
       @if (gate(); as check) {
         <div class="vx-card p-3 mb-3">
           <h6 class="fw-bold">Can this vehicle leave the factory?</h6>

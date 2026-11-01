@@ -1,8 +1,8 @@
 <div class="app-frame">
   <aside class="app-sidebar" [class.app-sidebar--open]="mobileNavOpen()">
     <a class="brand" routerLink="/dashboard" aria-label="VeynaX Motor Works console">
-      <span class="brand-mark"><i class="bi bi-speedometer2"></i></span>
-      <span class="brand-copy"><strong>VEYNA<span>X</span></strong><small>MOTOR WORKS</small></span>
+      <span class="brand-mark"><i class="bi bi-gear-wide-connected"></i></span>
+      <span class="brand-copy"><strong>VEYNA<span>X</span></strong><small>CAR ERP SYSTEM</small></span>
       <button class="icon-button sidebar-close d-lg-none" type="button" aria-label="Close navigation" (click)="mobileNavOpen.set(false)"><i class="bi bi-x-lg"></i></button>
     </a>
 
@@ -14,38 +14,40 @@
 
     <nav class="primary-nav" aria-label="Main navigation">
       <span class="nav-caption">WORKSPACE</span>
+      <a class="nav-item" routerLink="/dashboard" routerLinkActive="is-active"><i class="bi bi-house-door-fill"></i><span>Factory overview</span></a>
       <a class="nav-item nav-item--featured" routerLink="/workflow" routerLinkActive="is-active" [routerLinkActiveOptions]="{exact:true}"><i class="bi bi-bezier2"></i><span>Buy · Build · Deliver</span><i class="bi bi-arrow-up-right nav-item__trail"></i></a>
-      <a class="nav-item" routerLink="/dashboard" routerLinkActive="is-active"><i class="bi bi-grid-1x2"></i><span>Factory overview</span></a>
 
-      <span class="nav-caption">FACTORY SETUP</span>
-      <a class="nav-item" routerLink="/master-data/organizations" routerLinkActive="is-active"><i class="bi bi-diagram-3"></i><span>Organizations</span></a>
-      <a class="nav-item" routerLink="/master-data/factories" routerLinkActive="is-active"><i class="bi bi-buildings"></i><span>Factories</span></a>
-      <a class="nav-item" routerLink="/master-data/vehicle-models" routerLinkActive="is-active"><i class="bi bi-car-front"></i><span>Vehicle models</span></a>
-      <a class="nav-item" routerLink="/vehicle-config" routerLinkActive="is-active"><i class="bi bi-sliders2"></i><span>Vehicle options</span><span class="nav-soon">API gap</span></a>
-
-      <span class="nav-caption">OPERATIONS</span>
-      <a class="nav-item" routerLink="/engineering" routerLinkActive="is-active"><i class="bi bi-boxes"></i><span>Parts &amp; routing</span></a>
-      <a class="nav-item" routerLink="/supply-chain" routerLinkActive="is-active"><i class="bi bi-truck"></i><span>Supply chain</span></a>
+      <span class="nav-caption">PARTS &amp; SUPPLY CHAIN</span>
+      <a class="nav-item" routerLink="/engineering" routerLinkActive="is-active"><i class="bi bi-boxes"></i><span>Parts catalog</span></a>
+      <a class="nav-item" routerLink="/supply-chain" routerLinkActive="is-active"><i class="bi bi-truck"></i><span>Suppliers &amp; purchasing</span></a>
       <a class="nav-item" routerLink="/inventory" routerLinkActive="is-active"><i class="bi bi-box-seam"></i><span>Inventory &amp; MRP</span></a>
-      <a class="nav-item" routerLink="/production" routerLinkActive="is-active"><i class="bi bi-gear-wide-connected"></i><span>Production</span></a>
+
+      <span class="nav-caption">PRODUCTION &amp; ASSEMBLY</span>
+      <a class="nav-item" routerLink="/production" routerLinkActive="is-active"><i class="bi bi-gear-wide-connected"></i><span>Production orders</span></a>
       <a class="nav-item" routerLink="/scheduling" routerLinkActive="is-active"><i class="bi bi-calendar3"></i><span>Scheduling</span><span class="nav-soon">API gap</span></a>
-      <a class="nav-item" routerLink="/quality" routerLinkActive="is-active"><i class="bi bi-shield-check"></i><span>Quality</span></a>
+      <a class="nav-item" routerLink="/quality" routerLinkActive="is-active"><i class="bi bi-shield-check"></i><span>Quality control</span></a>
       <a class="nav-item" routerLink="/vin-traceability" routerLinkActive="is-active"><i class="bi bi-upc-scan"></i><span>Vehicle history</span></a>
 
-      <span class="nav-caption">PEOPLE &amp; DELIVERY</span>
-      <a class="nav-item" routerLink="/workforce" routerLinkActive="is-active"><i class="bi bi-people"></i><span>Workforce</span></a>
-      <a class="nav-item" routerLink="/maintenance" routerLinkActive="is-active"><i class="bi bi-wrench-adjustable"></i><span>Maintenance</span></a>
+      <span class="nav-caption">SALES &amp; SERVICE</span>
       <a class="nav-item" routerLink="/sales-payments" routerLinkActive="is-active"><i class="bi bi-receipt"></i><span>Sales &amp; customers</span></a>
       <a class="nav-item" routerLink="/finished-vehicles" routerLinkActive="is-active"><i class="bi bi-signpost-2"></i><span>Vehicle yard</span></a>
-      <a class="nav-item" routerLink="/approval-queues" routerLinkActive="is-active"><i class="bi bi-check2-square"></i><span>Approvals</span><span class="nav-soon">API gap</span></a>
+      <a class="nav-item" routerLink="/maintenance" routerLinkActive="is-active"><i class="bi bi-wrench-adjustable"></i><span>Service &amp; maintenance</span></a>
+      <a class="nav-item" routerLink="/workforce" routerLinkActive="is-active"><i class="bi bi-people"></i><span>HR &amp; staff</span></a>
+
+      <span class="nav-caption">INSIGHTS &amp; ADMIN</span>
+      <a class="nav-item" routerLink="/reports" routerLinkActive="is-active"><i class="bi bi-bar-chart-line-fill"></i><span>Reports &amp; analytics</span></a>
       <a class="nav-item" routerLink="/safety" routerLinkActive="is-active"><i class="bi bi-cone-striped"></i><span>Safety</span><span class="nav-soon">API gap</span></a>
-      <a class="nav-item" routerLink="/reports" routerLinkActive="is-active"><i class="bi bi-chart-line"></i><span>Reports</span></a>
+      <a class="nav-item" routerLink="/approval-queues" routerLinkActive="is-active"><i class="bi bi-check2-square"></i><span>Approvals</span><span class="nav-soon">API gap</span></a>
       <a class="nav-item" routerLink="/audit-log" routerLinkActive="is-active"><i class="bi bi-journal-text"></i><span>Audit log</span><span class="nav-soon">API gap</span></a>
+      <a class="nav-item" routerLink="/master-data/organizations" routerLinkActive="is-active"><i class="bi bi-diagram-3"></i><span>Organizations</span></a>
+      <a class="nav-item" routerLink="/master-data/factories" routerLinkActive="is-active"><i class="bi bi-buildings"></i><span>Factory settings</span></a>
+      <a class="nav-item" routerLink="/master-data/vehicle-models" routerLinkActive="is-active"><i class="bi bi-car-front"></i><span>Vehicle models</span></a>
+      <a class="nav-item" routerLink="/vehicle-config" routerLinkActive="is-active"><i class="bi bi-sliders2"></i><span>Vehicle options</span><span class="nav-soon">API gap</span></a>
     </nav>
 
     <div class="sidebar-footer">
-      <div class="sidebar-footer__mark"><i class="bi bi-shield-lock"></i></div>
-      <div><strong>Access controlled</strong><small>Permissions enforced by server</small></div>
+      <div class="sidebar-footer__mark"><i class="bi bi-car-front-fill"></i></div>
+      <div><strong>Build · Drive · Grow</strong><small>VEYNA<span>X</span> Motor Works</small></div>
     </div>
   </aside>
 
@@ -54,10 +56,11 @@
   <div class="app-main">
     <header class="topbar">
       <button class="icon-button menu-toggle d-lg-none" type="button" aria-label="Open navigation" (click)="mobileNavOpen.set(true)"><i class="bi bi-list"></i></button>
-      <div class="topbar-title"><span class="eyebrow">VEYNA<span>X</span> / MOTOR WORKS</span><h1>{{ pageTitle() }}</h1></div>
+      <div class="topbar-brand d-none d-lg-flex"><span class="eyebrow">VEYNA<span>X</span> / MOTOR WORKS</span></div>
       <div class="topbar-tools">
         <div class="topbar-search"><vx-global-search></vx-global-search></div>
         <vx-notification-bell></vx-notification-bell>
+        <a class="topbar-shortcut" routerLink="/scheduling" aria-label="Open production schedule" title="Production schedule"><i class="bi bi-calendar3"></i></a>
         <div class="profile-chip"><span class="profile-avatar">{{ auth.currentUser()?.fullName?.slice(0, 1) || 'U' }}</span><span class="profile-copy"><strong>{{ auth.currentUser()?.fullName }}</strong><small>{{ auth.currentUser()?.role }}</small></span></div>
         <button class="icon-button logout-button" type="button" aria-label="Log out" title="Log out" (click)="auth.logout()"><i class="bi bi-box-arrow-right"></i></button>
       </div>

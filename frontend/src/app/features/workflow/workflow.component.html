@@ -19,8 +19,16 @@
         <div class="col-6 col-md-2"><label class="form-label small">Unit price</label><input class="form-control" type="number" min="0.01" step="0.01" formControlName="unitPrice"></div>
         <div class="col-md-2"><button class="btn btn-primary w-100" [disabled]="busy() || purchaseForm.invalid">Order parts</button></div>
       </form>
+      <div class="row g-2 align-items-end mt-1"><div class="col-md-4"><label class="form-label small" for="receipt-warehouse">Warehouse for receipts</label><input id="receipt-warehouse" class="form-control" [value]="warehouseCode()" (input)="warehouseCode.set($any($event.target).value)" maxlength="60" required></div></div>
       <div class="table-responsive mt-3"><table class="table table-sm align-middle mb-0"><thead><tr><th>PO</th><th>Supplier</th><th>Part</th><th>Qty</th><th>Status</th><th>Receive to stock</th></tr></thead><tbody>
-        @for (po of purchaseOrders(); track po.id) { <tr><td>{{ po.poNumber }}</td><td>{{ supplierName(po.supplierCode) }}</td><td>{{ po.items?.[0]?.partCode ?? '—' }}</td><td>{{ po.items?.[0]?.quantity ?? '—' }}</td><td><span class="badge text-bg-light">{{ po.status }}</span></td><td>@if (po.status === 'ISSUED') { <button class="btn btn-sm btn-success" [disabled]="busy()" (click)="receivePurchaseOrder(po)">Receive</button> } @else if (po.status === 'RECEIVED') { <span class="text-success small">Added to stock</span> } @else { <span class="text-muted small">Waiting</span> }</td></tr> }
+        @for (po of purchaseOrders(); track po.id) { <tr><td>{{ po.poNumber }}</td><td>{{ supplierName(po.supplierCode) }}</td><td>{{ po.items?.[0]?.partCode ?? '—' }}</td><td>{{ po.items?.[0]?.quantity ?? '—' }}</td><td><span class="badge text-bg-light">{{ po.status }}</span></td><td>
+          @if (po.status === 'DRAFT') { <button class="btn btn-sm btn-outline-primary" [disabled]="busy()" (click)="advancePurchaseOrder(po, 'SUBMITTED')">Submit</button> }
+          @else if (po.status === 'SUBMITTED') { <button class="btn btn-sm btn-outline-primary" [disabled]="busy()" (click)="advancePurchaseOrder(po, 'APPROVED')">Approve</button> }
+          @else if (po.status === 'APPROVED') { <button class="btn btn-sm btn-outline-primary" [disabled]="busy()" (click)="advancePurchaseOrder(po, 'ISSUED')">Issue</button> }
+          @else if (po.status === 'ISSUED') { <button class="btn btn-sm btn-success" [disabled]="busy() || !warehouseCode().trim()" (click)="receivePurchaseOrder(po)">Receive</button> }
+          @else if (po.status === 'RECEIVED') { <button class="btn btn-sm btn-outline-success" [disabled]="busy()" (click)="advancePurchaseOrder(po, 'CLOSED')">Close</button> }
+          @else { <span class="text-muted small">No action</span> }
+        </td></tr> }
         @if (!purchaseOrders().length) { <tr><td colspan="6" class="text-center text-muted py-3">No part orders yet.</td></tr> }
       </tbody></table></div>
     </section>

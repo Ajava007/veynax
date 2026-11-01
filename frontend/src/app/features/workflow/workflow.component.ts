@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { concatMap, forkJoin } from 'rxjs';
+import { forkJoin } from 'rxjs';
 import { BackendApiService } from '../../core/services/backend-api.service';
 import { ToastService } from '../../core/services/toast.service';
 
@@ -20,6 +20,7 @@ export class WorkflowComponent implements OnInit {
     { number: 4, title: 'Customer & payments' },
   ];
   busy = signal(false);
+  warehouseCode = signal('MAIN-WH');
   suppliers = signal<any[]>([]);
   parts = signal<any[]>([]);
   models = signal<any[]>([]);
@@ -63,21 +64,25 @@ export class WorkflowComponent implements OnInit {
       poNumber: `PO-${Date.now()}`, supplierCode: value.supplierCode,
       orderDate: new Date().toISOString().slice(0, 10), currency: 'USD',
       items: [{ partCode: value.partCode, description: this.partName(value.partCode!), quantity: Number(value.quantity), unitPrice: Number(value.unitPrice) }]
-    }).pipe(
-      concatMap((created: any) => this.api.purchaseOrders.transition(created.data.id, 'SUBMITTED')),
-      concatMap((submitted: any) => this.api.purchaseOrders.transition(submitted.data.id, 'APPROVED')),
-      concatMap((approved: any) => this.api.purchaseOrders.transition(approved.data.id, 'ISSUED')),
-    ).subscribe({
-      next: () => { this.busy.set(false); this.toast.success('Part order sent. Receive it when the supplier delivery arrives.'); this.purchaseForm.reset({ supplierCode: '', partCode: '', quantity: 1, unitPrice: 1 }); this.refreshPurchaseOrders(); },
-      error: () => { this.busy.set(false); this.refreshPurchaseOrders(); }
+    }).subscribe({
+      next: () => { this.busy.set(false); this.toast.success('Draft purchase order created. Submit, approve, and issue it as each step is ready.'); this.purchaseForm.reset({ supplierCode: '', partCode: '', quantity: 1, unitPrice: 1 }); this.refreshPurchaseOrders(); },
+      error: (error) => { this.busy.set(false); this.toast.error(error?.error?.message || 'Could not create the purchase order.'); this.refreshPurchaseOrders(); }
+    });
+  }
+
+  advancePurchaseOrder(po: any, targetStatus: string): void {
+    this.busy.set(true);
+    this.api.purchaseOrders.transition(po.id, targetStatus).subscribe({
+      next: () => { this.busy.set(false); this.toast.success(`${po.poNumber} moved to ${targetStatus}.`); this.refreshPurchaseOrders(); },
+      error: (error) => { this.busy.set(false); this.toast.error(error?.error?.message || `Could not move the order to ${targetStatus}.`); this.refreshPurchaseOrders(); }
     });
   }
 
   receivePurchaseOrder(po: any): void {
     this.busy.set(true);
-    this.api.purchaseOrders.receive(po.id, 'MAIN-WH', `Received against ${po.poNumber}`).subscribe({
+    this.api.purchaseOrders.receive(po.id, this.warehouseCode().trim(), `Received against ${po.poNumber}`).subscribe({
       next: () => { this.busy.set(false); this.toast.success(`${po.poNumber} received into stock.`); this.refreshPurchaseOrders(); this.refreshInventory(); },
-      error: () => this.busy.set(false)
+      error: (error) => { this.busy.set(false); this.toast.error(error?.error?.message || 'Could not receive this order. Check the warehouse code and order status.'); }
     });
   }
 

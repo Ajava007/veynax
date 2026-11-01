@@ -18,13 +18,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class WorkOrderService {
@@ -39,7 +39,6 @@ public class WorkOrderService {
             "CANCELLED",   Set.of()
     );
 
-    private static final AtomicLong VIN_SEQ = new AtomicLong(1000);
 
     private final WorkOrderRepository woRepository;
     private final WorkOrderOperationRepository opRepository;
@@ -68,7 +67,7 @@ public class WorkOrderService {
     public ProductionDtos.MaterialCheckResponse checkMaterials(String modelCode, int vehicleQuantity) {
         if (vehicleQuantity < 1) throw new IllegalArgumentException("Vehicle quantity must be at least one.");
         Map<String, BigDecimal> requirements = new HashMap<>();
-        expandBom(modelCode, BigDecimal.valueOf(vehicleQuantity), new HashSet<>(), requirements);
+        expandBom(modelCode, BigDecimal.valueOf(vehicleQuantity), new HashSet<>(), requirements, LocalDate.now());
         List<ProductionDtos.MaterialLine> lines = requirements.entrySet().stream().sorted(Map.Entry.comparingByKey())
                 .map(entry -> {
                     BigDecimal available = inventoryRepository.findByPartCode(entry.getKey()).stream()
@@ -82,18 +81,25 @@ public class WorkOrderService {
         return new ProductionDtos.MaterialCheckResponse(modelCode, vehicleQuantity, sufficient, lines);
     }
 
-    private void expandBom(String parentCode, BigDecimal multiplier, Set<String> path, Map<String, BigDecimal> requirements) {
+    private void expandBom(String parentCode, BigDecimal multiplier, Set<String> path,
+                           Map<String, BigDecimal> requirements, LocalDate effectiveDate) {
         if (!path.add(parentCode)) throw new IllegalStateException("Circular BOM detected at part " + parentCode);
-        List<BomRow> rows = bomRepository.findByParentPartCodeOrderByLevelAscComponentPartCodeAsc(parentCode);
+        List<BomRow> rows = bomRepository.findByParentPartCodeOrderByLevelAscComponentPartCodeAsc(parentCode).stream()
+                .filter(row -> (row.getEffectiveFrom() == null || !row.getEffectiveFrom().isAfter(effectiveDate))
+                        && (row.getEffectiveTo() == null || !row.getEffectiveTo().isBefore(effectiveDate)))
+                .toList();
         for (BomRow row : rows) {
             if (row.isOptional()) continue;
             BigDecimal scrap = row.getScrapFactor() == null ? BigDecimal.ZERO : row.getScrapFactor();
             BigDecimal required = multiplier.multiply(row.getQuantity()).multiply(BigDecimal.ONE.add(scrap));
-            List<BomRow> children = bomRepository.findByParentPartCodeOrderByLevelAscComponentPartCodeAsc(row.getComponentPartCode());
+            List<BomRow> children = bomRepository.findByParentPartCodeOrderByLevelAscComponentPartCodeAsc(row.getComponentPartCode()).stream()
+                    .filter(child -> (child.getEffectiveFrom() == null || !child.getEffectiveFrom().isAfter(effectiveDate))
+                            && (child.getEffectiveTo() == null || !child.getEffectiveTo().isBefore(effectiveDate)))
+                    .toList();
             if (children.isEmpty()) {
                 requirements.merge(row.getComponentPartCode(), required, BigDecimal::add);
             } else {
-                expandBom(row.getComponentPartCode(), required, new HashSet<>(path), requirements);
+                expandBom(row.getComponentPartCode(), required, new HashSet<>(path), requirements, effectiveDate);
             }
         }
     }
@@ -127,7 +133,7 @@ public class WorkOrderService {
     @Transactional
     public ProductionDtos.WoResponse transition(Long id, MaintenanceDtos.TransitionRequest req)
     {
-        WorkOrder wo = woRepository.findById(id)
+        WorkOrder wo = woRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new EntityNotFoundException("Work order not found: " + id));
         String target = req.targetStatus().toUpperCase();
         Set<String> allowed = ALLOWED.getOrDefault(wo.getStatus(), Set.of());
@@ -139,14 +145,20 @@ public class WorkOrderService {
         wo.setStatus(target);
         if ("RELEASED".equals(target)) wo.setReleasedAt(now);
         if ("IN_PROGRESS".equals(target) && wo.getStartedAt() == null) wo.setStartedAt(now);
-        if (req.producedQuantity() != null) wo.setProducedQuantity(req.producedQuantity());
-        if (req.rejectedQuantity() != null) wo.setRejectedQuantity(req.rejectedQuantity());
+        int produced = req.producedQuantity() != null ? req.producedQuantity() : wo.getProducedQuantity();
+        int rejected = req.rejectedQuantity() != null ? req.rejectedQuantity() : wo.getRejectedQuantity();
+        if (produced < 0 || rejected < 0 || produced + rejected > wo.getTargetQuantity()) {
+            throw new IllegalArgumentException("Produced plus rejected quantity must be between zero and the work-order target.");
+        }
+        wo.setProducedQuantity(produced);
+        wo.setRejectedQuantity(rejected);
         if ("COMPLETED".equals(target)) {
+            if (produced + rejected == 0) {
+                throw new IllegalStateException("Record completed or rejected units before completing the work order.");
+            }
             wo.setCompletedAt(now);
-            // Generate VIN range for the produced units (demo prefix VX)
-            long from = VIN_SEQ.getAndAdd(wo.getTargetQuantity());
-            wo.setGeneratedVinFrom(String.format("VX%014d", from));
-            wo.setGeneratedVinTo(String.format("VX%014d", from + wo.getTargetQuantity() - 1));
+            // VINs require the factory's assigned WMI and durable per-vehicle genealogy.
+            // Do not fabricate VINs from an in-memory sequence.
         }
         return toResponse(woRepository.save(wo));
     }

@@ -1,52 +1,138 @@
+<section aria-labelledby="engineering-title">
+  <h1 id="engineering-title" class="h4 fw-bold mb-1">Engineering</h1>
+  <p class="text-muted small mb-3">Parts, bill of materials and work steps from the backend.</p>
+  <div class="alert alert-info py-2 small" role="status">Part revision labels can be saved. Change history is unavailable because the backend has no engineering change API.</div>
 
-    <h5 class="fw-bold mb-1">Engineering</h5>
-    <p class="text-muted small mb-3">Parts, bill of materials, and work steps from the backend.</p>
-    <ul class="nav nav-pills gap-1 mb-3">
-      @for (t of tabs; track t.id) {
-        <li class="nav-item"><button class="nav-link btn-sm" [class.active]="tab()===t.id" (click)="tab.set(t.id)" style="color:#e8e5df;">{{ t.label }}</button></li>
+  <ul class="nav nav-pills gap-1 mb-3" aria-label="Engineering pages">
+    @for (t of tabs; track t.id) {
+      <li class="nav-item"><button type="button" class="nav-link btn-sm" [class.active]="tab()===t.id" [attr.aria-pressed]="tab()===t.id" (click)="tab.set(t.id)" style="color:#e8e5df;">{{ t.label }}</button></li>
+    }
+  </ul>
+
+  @if (tab()==='parts') {
+    <div class="d-flex justify-content-end mb-3">
+      @if (canManageEngineering()) { <button type="button" class="btn btn-primary btn-sm" (click)="openNewPart()">Add part</button> }
+    </div>
+    @if (partFormOpen()) {
+      <div class="vx-card p-3 mb-3">
+        <h2 class="h6 fw-bold">{{ editingPartId() === null ? 'Add a part' : 'Edit part' }}</h2>
+        <form [formGroup]="partForm" (ngSubmit)="savePart()" class="row g-2">
+          <div class="col-md-3"><label class="form-label small" for="part-code">Part code</label><input id="part-code" class="form-control form-control-sm" formControlName="partCode" maxlength="40" [readonly]="editingPartId() !== null"><vx-field-error [control]="partForm.get('partCode')" /></div>
+          <div class="col-md-3"><label class="form-label small" for="part-name">Name</label><input id="part-name" class="form-control form-control-sm" formControlName="name" maxlength="150"><vx-field-error [control]="partForm.get('name')" /></div>
+          <div class="col-md-2"><label class="form-label small" for="part-uom">Unit</label><input id="part-uom" class="form-control form-control-sm" formControlName="uom" maxlength="10"><vx-field-error [control]="partForm.get('uom')" /></div>
+          <div class="col-md-2"><label class="form-label small" for="part-category">Category</label><select id="part-category" class="form-select form-select-sm" formControlName="category"><option value="RAW">Raw</option><option value="PURCHASED">Purchased</option><option value="SUBASSEMBLY">Subassembly</option><option value="ASSEMBLY">Assembly</option></select></div>
+          <div class="col-md-2"><label class="form-label small" for="part-cost">Standard cost</label><input id="part-cost" class="form-control form-control-sm" formControlName="standardCost" type="number" min="0" step="0.0001"><vx-field-error [control]="partForm.get('standardCost')" /></div>
+          <div class="col-md-4"><label class="form-label small" for="part-revision">Revision</label><input id="part-revision" class="form-control form-control-sm" formControlName="revision" maxlength="10"></div>
+          <div class="col-md-4"><label class="form-label small" for="part-status">Status</label><select id="part-status" class="form-select form-select-sm" formControlName="status"><option value="DRAFT">Draft</option><option value="ACTIVE">Active</option><option value="OBSOLETE">Obsolete</option></select></div>
+          <div class="col-md-4"><label class="form-label small" for="part-description">Description</label><input id="part-description" class="form-control form-control-sm" formControlName="description" maxlength="500"></div>
+          <div class="col-12 d-flex gap-2 justify-content-end"><button type="button" class="btn btn-outline-secondary btn-sm" (click)="cancelPartEdit()">Cancel</button><button type="submit" class="btn btn-primary btn-sm" [disabled]="partSaving()">{{ partSaving() ? 'Saving…' : editingPartId() === null ? 'Add part' : 'Save changes' }}</button></div>
+        </form>
+      </div>
+    }
+    <div class="vx-card p-0 overflow-auto">
+      <table class="table vx-table table-hover mb-0">
+        <thead><tr><th>Code</th><th>Name</th><th>Category</th><th>Unit</th><th class="text-end">Unit cost</th><th>Revision</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          @if (partsLoading()) { <tr><td colspan="8" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading parts…</td></tr> }
+          @if (partsError()) { <tr><td colspan="8" class="text-center text-danger py-4">{{ partsError() }} <button type="button" class="btn btn-sm btn-outline-primary ms-2" (click)="loadParts()">Try again</button></td></tr> }
+          @for (p of partRecords(); track p.id) {
+            <tr><td class="mono">{{ p.partCode }}</td><td class="fw-semibold">{{ p.name }}</td><td>{{ p.category }}</td><td>{{ p.uom }}</td><td class="text-end mono">{{ p.standardCost != null ? p.standardCost.toLocaleString() : '—' }}</td>
+              <td class="mono">{{ p.revision || '—' }}</td><td><span class="badge" [style.background]="p.status==='ACTIVE'?'rgba(111,191,115,.18)':'rgba(212,168,74,.18)'" [style.color]="p.status==='ACTIVE'?'#6fbf73':'#d4a84a'">{{ p.status }}</span></td>
+              <td>@if (canManageEngineering()) { <button type="button" class="btn btn-sm btn-outline-secondary me-1" [attr.aria-label]="'Edit ' + p.name" (click)="editPart(p)">Edit</button> } @if (canDeleteEngineering()) { <button type="button" class="btn btn-sm btn-outline-danger" [attr.aria-label]="'Delete ' + p.name" (click)="deletePart(p)">Delete</button> }</td></tr>
+          }
+          @if (!partsLoading() && !partsError() && partRecords().length===0) { <tr><td colspan="8" class="text-center text-muted py-4">No parts found.</td></tr> }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (tab()==='bom') {
+    <div class="vx-card p-3">
+      <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
+        <p class="small text-muted mb-0">Bill of materials for <strong class="text-white">{{ selectedModel()?.modelName || selectedModelCode() || 'selected vehicle' }}</strong></p>
+        @if (models().length) {
+          <label class="small text-muted d-flex align-items-center gap-2">Vehicle model
+            <select class="form-select form-select-sm" aria-label="Vehicle model for bill of materials" [ngModel]="selectedModelCode()" (ngModelChange)="selectModel($event)">
+              @for (model of models(); track model.id) { <option [value]="model.modelCode">{{ model.modelCode }} · {{ model.modelName }}</option> }
+            </select>
+          </label>
+        }
+        @if (canManageEngineering() && selectedModelCode()) { <button type="button" class="btn btn-primary btn-sm" (click)="openNewBomRow()">Add component</button> }
+      </div>
+
+      @if (bomFormOpen()) {
+        <form [formGroup]="bomForm" (ngSubmit)="saveBomRow()" class="row g-2 border rounded p-3 mb-3">
+          <div class="col-md-3"><label class="form-label small" for="bom-parent">Parent</label><select id="bom-parent" class="form-select form-select-sm" formControlName="parentPartCode" (change)="updateBomParentLevel($any($event.target).value)"><option [value]="selectedModelCode()">{{ selectedModelCode() }} · Vehicle</option>@for (part of partRecords(); track part.id) { <option [value]="part.partCode">{{ part.partCode }} · {{ part.name }}</option> }</select><vx-field-error [control]="bomForm.get('parentPartCode')" /></div>
+          <div class="col-md-3"><label class="form-label small" for="bom-component">Component part</label><select id="bom-component" class="form-select form-select-sm" formControlName="componentPartCode"><option value="">Choose a part</option>@for (part of partRecords(); track part.id) { <option [value]="part.partCode">{{ part.partCode }} · {{ part.name }}</option> }</select><vx-field-error [control]="bomForm.get('componentPartCode')" /></div>
+          <div class="col-md-2"><label class="form-label small" for="bom-quantity">Quantity</label><input id="bom-quantity" class="form-control form-control-sm" type="number" min="0.0001" step="0.0001" formControlName="quantity"><vx-field-error [control]="bomForm.get('quantity')" /></div>
+          <div class="col-md-2"><label class="form-label small" for="bom-scrap">Scrap factor (0–1)</label><input id="bom-scrap" class="form-control form-control-sm" type="number" min="0" max="1" step="0.01" formControlName="scrapFactor"><vx-field-error [control]="bomForm.get('scrapFactor')" /></div>
+          <div class="col-md-2"><label class="form-label small" for="bom-from">Starts on</label><input id="bom-from" class="form-control form-control-sm" type="date" formControlName="effectiveFrom"></div>
+          <div class="col-md-2"><label class="form-label small" for="bom-to">Ends on</label><input id="bom-to" class="form-control form-control-sm" type="date" formControlName="effectiveTo"></div>
+          <div class="col-md-2"><label class="form-label small" for="bom-level">Level</label><input id="bom-level" class="form-control form-control-sm" type="number" min="1" formControlName="level" readonly></div>
+          <div class="col-md-2 d-flex align-items-end"><label class="form-check-label small"><input class="form-check-input me-2" type="checkbox" formControlName="optional">Optional part</label></div>
+          <div class="col-md-4"><label class="form-label small" for="bom-remark">Note</label><input id="bom-remark" class="form-control form-control-sm" maxlength="500" formControlName="remark"></div>
+          @if (bomEffectivityInvalid()) { <div class="col-12 small text-danger" role="alert">The end date must be the same as or later than the start date.</div> }
+          <div class="col-12 d-flex justify-content-end gap-2"><button type="button" class="btn btn-outline-secondary btn-sm" (click)="cancelBomEdit()">Cancel</button><button type="submit" class="btn btn-primary btn-sm" [disabled]="bomSaving()">{{ bomSaving() ? 'Saving…' : editingBomId() === null ? 'Add component' : 'Save changes' }}</button></div>
+        </form>
       }
-    </ul>
-    @if (tab()==='parts') {
-      <div class="vx-card p-0 overflow-auto">
-        <table class="table vx-table table-hover mb-0">
-          <thead><tr><th>Code</th><th>Name</th><th>Category</th><th>UoM</th><th class="text-end">Unit cost</th><th>Status</th></tr></thead>
-          <tbody>
-            @for (p of data.parts; track p.id) {
-              <tr><td class="mono">{{ p.code }}</td><td class="fw-semibold">{{ p.name }}</td><td>{{ p.category }}</td><td>{{ p.uom }}</td><td class="text-end mono">{{ p.cost.toLocaleString() }}</td>
-              <td><span class="badge" [style.background]="p.status==='ACTIVE'?'rgba(111,191,115,.18)':'rgba(212,168,74,.18)'" [style.color]="p.status==='ACTIVE'?'#6fbf73':'#d4a84a'">{{ p.status }}</span></td></tr>
-            }
-          </tbody>
-        </table>
+
+      @if (modelsLoading()) { <div class="text-center text-muted py-3">Loading vehicle models…</div> }
+      @if (modelsError()) { <div class="text-center text-danger py-3">{{ modelsError() }} <button type="button" class="btn btn-sm btn-outline-primary ms-2" (click)="loadModels()">Try again</button></div> }
+      @if (!modelsLoading() && !modelsError() && models().length===0) { <div class="text-center text-muted py-3">No vehicle models found. Add a model before viewing its bill of materials.</div> }
+      @if (bomLoading()) { <div class="text-center text-muted py-3"><span class="spinner-border spinner-border-sm me-2"></span>Loading bill of materials…</div> }
+      @if (bomError()) { <div class="text-center text-danger py-3">{{ bomError() }} <button type="button" class="btn btn-sm btn-outline-primary ms-2" (click)="selectModel(selectedModelCode())">Try again</button></div> }
+      @if (!bomLoading() && !bomError() && selectedModelCode() && bomRecords().length===0) { <div class="text-center text-muted py-3">No bill of materials is set up for this vehicle model.</div> }
+      @if (bomRecords().length) {
+        <div class="overflow-auto">
+          <table class="table vx-table table-sm mb-0">
+            <thead><tr><th style="width:40px;">Level</th><th>Parent</th><th>Part code</th><th>Part</th><th>Quantity</th><th>Effective dates</th><th>Type</th><th>Actions</th></tr></thead>
+            <tbody>
+              @for (b of bomRecords(); track b.id) {
+                <tr><td class="mono">{{ b.displayLevel }}</td><td class="mono">{{ b.parentPartCode }}</td><td class="mono" [style.padding-left.px]="b.displayLevel*18">{{ b.componentPartCode }}</td><td>{{ partName(b.componentPartCode) }}</td><td class="mono">{{ b.quantity }}</td>
+                  <td class="small">{{ b.effectiveFrom || 'No start date' }} – {{ b.effectiveTo || 'No end date' }}</td><td><span class="badge text-bg-secondary">{{ b.optional ? 'Optional' : 'Required' }}</span></td>
+                  <td>@if (canManageEngineering()) { <button type="button" class="btn btn-sm btn-outline-secondary me-1" [attr.aria-label]="'Edit BOM row ' + b.componentPartCode" (click)="editBomRow(b)">Edit</button> } @if (canDeleteEngineering()) { <button type="button" class="btn btn-sm btn-outline-danger" [attr.aria-label]="'Delete BOM row ' + b.componentPartCode" (click)="deleteBomRow(b)">Delete</button> }</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  @if (tab()==='routing') {
+    <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap mb-3">
+      <p class="small text-muted mb-0">Work steps for <strong>{{ selectedModel()?.modelName || selectedModelCode() || 'selected vehicle' }}</strong></p>
+      @if (canManageEngineering() && selectedModelCode()) { <button type="button" class="btn btn-primary btn-sm" (click)="openNewRoutingOperation()">Add work step</button> }
+    </div>
+    @if (routingFormOpen()) {
+      <div class="vx-card p-3 mb-3">
+        <h2 class="h6 fw-bold">{{ editingRoutingId() === null ? 'Add a work step' : 'Edit work step' }}</h2>
+        <form [formGroup]="routingForm" (ngSubmit)="saveRoutingOperation()" class="row g-2">
+          <div class="col-md-2"><label class="form-label small" for="route-number">Step number</label><input id="route-number" class="form-control form-control-sm" type="number" min="1" step="1" formControlName="operationNumber" [readonly]="editingRoutingId() !== null"><vx-field-error [control]="routingForm.get('operationNumber')" /></div>
+          <div class="col-md-3"><label class="form-label small" for="route-name">Step name</label><input id="route-name" class="form-control form-control-sm" maxlength="150" formControlName="operationName"><vx-field-error [control]="routingForm.get('operationName')" /></div>
+          <div class="col-md-3"><label class="form-label small" for="route-center">Work center</label><input id="route-center" class="form-control form-control-sm" maxlength="60" formControlName="workCenter"><vx-field-error [control]="routingForm.get('workCenter')" /></div>
+          <div class="col-md-2"><label class="form-label small" for="route-setup">Setup (seconds)</label><input id="route-setup" class="form-control form-control-sm" type="number" min="0" step="1" formControlName="setupTimeSec"><vx-field-error [control]="routingForm.get('setupTimeSec')" /></div>
+          <div class="col-md-2"><label class="form-label small" for="route-cycle">Cycle (seconds)</label><input id="route-cycle" class="form-control form-control-sm" type="number" min="1" step="1" formControlName="cycleTimeSec"><vx-field-error [control]="routingForm.get('cycleTimeSec')" /></div>
+          <div class="col-12"><label class="form-label small" for="route-instructions">Instructions</label><textarea id="route-instructions" class="form-control form-control-sm" maxlength="1000" rows="2" formControlName="instructions"></textarea></div>
+          <div class="col-12 d-flex justify-content-end gap-2"><button type="button" class="btn btn-outline-secondary btn-sm" (click)="cancelRoutingEdit()">Cancel</button><button type="submit" class="btn btn-primary btn-sm" [disabled]="routingSaving()">{{ routingSaving() ? 'Saving…' : editingRoutingId() === null ? 'Add work step' : 'Save changes' }}</button></div>
+        </form>
       </div>
     }
-    @if (tab()==='bom') {
-      <div class="vx-card p-3">
-        <p class="small text-muted mb-2">Multi-level BOM for <strong class="text-white">SUVX-2026</strong> — circular-reference prevention enforced at backend.</p>
-        <table class="table vx-table table-sm mb-0">
-          <thead><tr><th style="width:40px;">Lvl</th><th>Code</th><th>Component</th><th>Qty</th><th>Type</th></tr></thead>
-          <tbody>
-            @for (b of data.bom; track b.code) {
-              <tr [style.font-weight]="b.level===0?'700':'400'" [style.background]="b.level===0?'rgba(196,112,70,.08)':'transparent'">
-                <td class="mono">{{ b.level }}</td>
-                <td class="mono" [style.padding-left.px]="b.level*18">{{ b.code }}</td>
-                <td>{{ b.name }}</td><td class="mono">{{ b.qty }} {{ b.uom }}</td>
-                <td><span class="badge text-bg-secondary">{{ b.type }}</span></td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    }
-    @if (tab()==='routing') {
-      <div class="vx-card p-0 overflow-auto">
-        <table class="table vx-table table-hover mb-0">
-          <thead><tr><th>Seq</th><th>Operation</th><th>Work Center</th><th>Machine</th><th class="text-end">Setup (min)</th><th class="text-end">Cycle (min)</th></tr></thead>
-          <tbody>
-            @for (r of data.routing; track r.seq) {
-              <tr><td class="mono">{{ r.seq }}</td><td class="fw-semibold">{{ r.name }}</td><td class="mono">{{ r.workCenter }}</td><td>{{ r.machine }}</td><td class="text-end mono">{{ r.setupMin }}</td><td class="text-end mono">{{ r.cycleMin }}</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    }
-  
+    <div class="vx-card p-0 overflow-auto">
+      <table class="table vx-table table-hover mb-0">
+        <thead><tr><th>Step</th><th>Operation</th><th>Work center</th><th class="text-end">Setup (min)</th><th class="text-end">Cycle (min)</th><th>Instructions</th><th>Actions</th></tr></thead>
+        <tbody>
+          @if (modelsLoading()) { <tr><td colspan="7" class="text-center text-muted py-4">Loading vehicle models…</td></tr> }
+          @if (modelsError()) { <tr><td colspan="7" class="text-center text-danger py-4">{{ modelsError() }} <button type="button" class="btn btn-sm btn-outline-primary ms-2" (click)="loadModels()">Try again</button></td></tr> }
+          @if (routingLoading()) { <tr><td colspan="7" class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Loading work steps…</td></tr> }
+          @if (routingError()) { <tr><td colspan="7" class="text-center text-danger py-4">{{ routingError() }} <button type="button" class="btn btn-sm btn-outline-primary ms-2" (click)="selectModel(selectedModelCode())">Try again</button></td></tr> }
+          @for (r of routingRecords(); track r.id) {
+            <tr><td class="mono">{{ r.operationNumber }}</td><td class="fw-semibold">{{ r.operationName }}</td><td class="mono">{{ r.workCenter }}</td><td class="text-end mono">{{ secondsToMinutes(r.setupTimeSec) }}</td><td class="text-end mono">{{ secondsToMinutes(r.cycleTimeSec) }}</td><td class="small">{{ r.instructions || '—' }}</td>
+              <td>@if (canManageEngineering()) { <button type="button" class="btn btn-sm btn-outline-secondary me-1" [attr.aria-label]="'Edit operation ' + r.operationNumber" (click)="editRoutingOperation(r)">Edit</button> } @if (canDeleteEngineering()) { <button type="button" class="btn btn-sm btn-outline-danger" [attr.aria-label]="'Delete operation ' + r.operationNumber" (click)="deleteRoutingOperation(r)">Delete</button> }</td></tr>
+          }
+          @if (!modelsLoading() && !modelsError() && !routingLoading() && !routingError() && selectedModelCode() && routingRecords().length===0) { <tr><td colspan="7" class="text-center text-muted py-4">No work steps are set up for this vehicle model.</td></tr> }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

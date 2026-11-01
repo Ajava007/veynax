@@ -17,6 +17,7 @@ export const VALIDATION_MESSAGES: Record<string, ValidationMessageFn> = {
 export function firstValidationMessage(errors: ValidationErrors | null): string | null {
   if (!errors) return null;
   const key = Object.keys(errors)[0];
+  if (!key) return null;
   const fn = VALIDATION_MESSAGES[key];
   return fn ? fn(errors[key]) : 'This field is invalid.';
 }

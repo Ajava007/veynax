@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PartRepository extends JpaRepository<Part, Long> {
     boolean existsByPartCode(String partCode);
+    boolean existsByPartCodeIgnoreCase(String partCode);
 }

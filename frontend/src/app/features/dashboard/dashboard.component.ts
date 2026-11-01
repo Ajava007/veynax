@@ -20,7 +20,7 @@ export class DashboardComponent {
   readonly lastUpdated = signal<Date | null>(null);
   readonly ready = {
     production: signal(false), inspections: signal(false), ncrs: signal(false), inventory: signal(false),
-    maintenance: signal(false), workforce: signal(false), sales: signal(false)
+    maintenance: signal(false), maintenanceOrders: signal(false), workforce: signal(false), sales: signal(false), purchaseOrders: signal(false)
   };
   readonly apiGaps = [
     { title: 'Machine telemetry & takt', area: 'PRODUCTION', status: 'API MISSING', detail: 'No station heartbeat, cycle-time, downtime event or line-rate endpoint exists yet.', route: 'Needed: /api/v1/production/telemetry' },
@@ -43,6 +43,35 @@ export class DashboardComponent {
     ];
     return rows.map(row => ({ ...row, count: this.data.workOrders.filter(order => order.status === row.key).length }));
   }
+  get statusDonut(): string {
+    const rows = this.statusMix;
+    const total = rows.reduce((sum, row) => sum + row.count, 0);
+    if (!total) return 'conic-gradient(#243b52 0 100%)';
+    let cursor = 0;
+    const stops = rows.map(row => {
+      const start = cursor;
+      cursor += row.count / total * 100;
+      return `${row.color} ${start}% ${cursor}%`;
+    });
+    return `conic-gradient(${stops.join(',')})`;
+  }
+  get latestRecords() {
+    return [
+      ...this.data.purchaseOrders.slice(0, 3).map(row => ({ icon: 'bi-bag-check', title: `Purchase order ${row.id}`, detail: `${row.supplier} · ${row.status}`, route: '/supply-chain' })),
+      ...this.data.workOrders.slice(0, 3).map(row => ({ icon: 'bi-gear-wide-connected', title: `Work order ${row.id}`, detail: `${row.model} · ${row.status}`, route: '/production' })),
+      ...this.data.salesOrders.slice(0, 3).map(row => ({ icon: 'bi-receipt', title: `Sales order ${row.id}`, detail: `${row.model} · ${row.status}`, route: '/sales-payments' }))
+    ].slice(0, 5);
+  }
+  get currentAlerts() {
+    const alerts: { icon: string; tone: string; title: string; detail: string; route: string }[] = [];
+    if (this.ready.inventory()) {
+      const emptyStock = this.data.stock.filter(item => item.onHand - item.reserved <= 0).length;
+      if (emptyStock) alerts.push({ icon: 'bi-exclamation-triangle-fill', tone: 'danger', title: 'Parts at zero available stock', detail: `${emptyStock} inventory items need review`, route: '/inventory' });
+    }
+    if (this.ready.ncrs() && this.openNcrs) alerts.push({ icon: 'bi-exclamation-diamond-fill', tone: 'warning', title: 'Open quality cases', detail: `${this.openNcrs} nonconformance records remain active`, route: '/quality' });
+    if (this.ready.maintenanceOrders() && this.pendingServiceOrders) alerts.push({ icon: 'bi-wrench-adjustable', tone: 'info', title: 'Service work in queue', detail: `${this.pendingServiceOrders} maintenance orders are not closed`, route: '/maintenance' });
+    return alerts.slice(0, 4);
+  }
 
   constructor(public auth: AuthService, public data: AppDataService, private readonly api: BackendApiService) {
     timer(0, 30_000).pipe(
@@ -55,6 +84,10 @@ export class DashboardComponent {
   refresh(): void { this.load().subscribe(); }
 
   get unitsProduced(): number { return this.data.workOrders.reduce((sum, order) => sum + order.completed, 0); }
+  get partsAvailable(): number { return this.data.stock.reduce((sum, item) => sum + Math.max(0, item.onHand - item.reserved), 0); }
+  get salesValue(): number { return this.data.salesOrders.reduce((sum, order) => sum + order.amount, 0); }
+  get pendingPurchaseOrders(): number { return this.data.purchaseOrders.filter(order => !['RECEIVED', 'CANCELLED', 'CLOSED'].includes((order.status || '').toUpperCase())).length; }
+  get pendingServiceOrders(): number { return this.data.maintenanceOrders.filter(order => !['COMPLETED', 'CANCELLED', 'CLOSED'].includes((order.status || '').toUpperCase())).length; }
   get activeWorkOrders(): number { return this.data.workOrders.filter(order => !['COMPLETED', 'CANCELLED'].includes(order.status)).length; }
   get openNcrs(): number { return this.data.ncrs.filter(issue => !['CLOSED', 'RESOLVED', 'VERIFIED'].includes(issue.status)).length; }
   get ordersAwaitingPayment(): number { return this.data.salesOrders.filter(order => !['PAID', 'REFUNDED'].includes(order.status)).length; }
@@ -75,8 +108,10 @@ export class DashboardComponent {
       ncrs: keepLastGood(this.api.quality.ncrs(0, 100)),
       inventory: keepLastGood(this.api.inventory.items(0, 100)),
       assets: keepLastGood(this.api.maintenance.assets()),
+      maintenanceOrders: keepLastGood(this.api.maintenance.workOrders(0, 100)),
       employees: keepLastGood(this.api.workforce.employees(0, 100)),
-      salesOrders: keepLastGood(this.api.sales.orders(0, 100))
+      salesOrders: keepLastGood(this.api.sales.orders(0, 100)),
+      purchaseOrders: keepLastGood(this.api.purchaseOrders.list(0, 100))
     }).pipe(
       tap(result => {
         if (result.workOrders) {
@@ -99,6 +134,10 @@ export class DashboardComponent {
           this.data.machines = result.assets.data.map((a: any) => ({ id: a.assetCode, name: a.name, workCenter: a.lineCode ?? '', type: a.level ?? '', status: a.status, nextMaintenance: '—' }));
           this.ready.maintenance.set(true);
         }
+        if (result.maintenanceOrders) {
+          this.data.maintenanceOrders = result.maintenanceOrders.data.content.map((w: any) => ({ id: w.mwoNumber ?? String(w.id), machine: w.assetCode ?? '—', type: w.type ?? '', priority: w.priority ?? '—', status: w.status, due: w.scheduledStart ?? '—' }));
+          this.ready.maintenanceOrders.set(true);
+        }
         if (result.employees) {
           this.data.employees = result.employees.data.content.map((e: any) => ({ id: e.id, name: e.fullName, role: e.department ?? '', factory: e.factoryCode ?? '', shift: '—', skill: '—', status: e.status }));
           this.ready.workforce.set(true);
@@ -106,6 +145,10 @@ export class DashboardComponent {
         if (result.salesOrders) {
           this.data.salesOrders = result.salesOrders.data.content.map((o: any) => ({ id: o.soNumber, customer: String(o.customerId), model: o.modelCode, qty: 1, amount: o.totalAmount ?? 0, status: o.paymentStatus }));
           this.ready.sales.set(true);
+        }
+        if (result.purchaseOrders) {
+          this.data.purchaseOrders = result.purchaseOrders.data.content.map((po: any) => ({ id: po.poNumber, backendId: po.id, supplier: po.supplierCode, date: po.orderDate, total: po.totalAmount ?? 0, status: po.status, items: po.items?.length ?? 0 }));
+          this.ready.purchaseOrders.set(true);
         }
         this.partial.set(hadError);
         if (Object.values(result).some(value => value !== null)) this.lastUpdated.set(new Date());

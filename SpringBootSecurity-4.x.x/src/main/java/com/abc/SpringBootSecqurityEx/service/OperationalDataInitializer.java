@@ -3,6 +3,7 @@ package com.abc.SpringBootSecqurityEx.service;
 import com.abc.SpringBootSecqurityEx.entity.*;
 import com.abc.SpringBootSecqurityEx.repository.*;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +17,7 @@ import java.util.List;
 /** Adds a small, readable first-run dataset to empty business tables. Existing rows are preserved. */
 @Component
 @Order(2)
+@ConditionalOnProperty(prefix = "app.demo-data", name = "enabled", havingValue = "true")
 public class OperationalDataInitializer implements CommandLineRunner {
     private static final int ROWS = 20;
     private static final String BRAND = "Northstar Motors";

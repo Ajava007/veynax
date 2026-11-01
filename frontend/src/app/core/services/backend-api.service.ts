@@ -3,6 +3,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse, Page } from '../models/api-response';
+import { BomRowRecord, BomRowRequest, PartRecord, PartRequest, RoutingOperationRecord, RoutingOperationRequest } from '../models/engineering';
+import { VehicleModel } from '../models/master-data';
 
 type Data<T = unknown> = ApiResponse<T>;
 type Query = Record<string, string | number | boolean | undefined | null>;
@@ -36,22 +38,26 @@ export class BackendApiService {
   // Master data
   readonly organizations = this.crud(`${this.v1}/master-data/organizations`);
   readonly factories = this.crud(`${this.v1}/master-data/factories`);
-  readonly vehicleModels = this.crud(`${this.v1}/master-data/vehicle-models`);
+  readonly vehicleModels = this.crud<VehicleModel>(`${this.v1}/master-data/vehicle-models`);
 
   // Engineering
-  readonly parts = this.crud(`${this.v1}/engineering/parts`);
+  readonly parts = {
+    ...this.crud<PartRecord>(`${this.v1}/engineering/parts`),
+    create: (body: PartRequest) => this.http.post<Data<PartRecord>>(`${this.v1}/engineering/parts`, body),
+    update: (id: number, body: PartRequest) => this.http.put<Data<PartRecord>>(`${this.v1}/engineering/parts/${id}`, body),
+  };
   readonly bom = {
-    byParent: (parentPartCode: string) => this.http.get<Data<unknown[]>>(`${this.v1}/engineering/bom`, { params: this.params({ parentPartCode }) }),
-    get: (id: number) => this.http.get<Data<unknown>>(`${this.v1}/engineering/bom/${id}`),
-    create: (body: unknown) => this.http.post<Data<unknown>>(`${this.v1}/engineering/bom`, body),
-    update: (id: number, body: unknown) => this.http.put<Data<unknown>>(`${this.v1}/engineering/bom/${id}`, body),
+    byParent: (parentPartCode: string) => this.http.get<Data<BomRowRecord[]>>(`${this.v1}/engineering/bom`, { params: this.params({ parentPartCode }) }),
+    get: (id: number) => this.http.get<Data<BomRowRecord>>(`${this.v1}/engineering/bom/${id}`),
+    create: (body: BomRowRequest) => this.http.post<Data<BomRowRecord>>(`${this.v1}/engineering/bom`, body),
+    update: (id: number, body: BomRowRequest) => this.http.put<Data<BomRowRecord>>(`${this.v1}/engineering/bom/${id}`, body),
     delete: (id: number) => this.http.delete<Data<void>>(`${this.v1}/engineering/bom/${id}`),
   };
   readonly routing = {
-    byModel: (modelCode: string) => this.http.get<Data<unknown[]>>(`${this.v1}/engineering/routing`, { params: this.params({ modelCode }) }),
-    get: (id: number) => this.http.get<Data<unknown>>(`${this.v1}/engineering/routing/${id}`),
-    create: (body: unknown) => this.http.post<Data<unknown>>(`${this.v1}/engineering/routing`, body),
-    update: (id: number, body: unknown) => this.http.put<Data<unknown>>(`${this.v1}/engineering/routing/${id}`, body),
+    byModel: (modelCode: string) => this.http.get<Data<RoutingOperationRecord[]>>(`${this.v1}/engineering/routing`, { params: this.params({ modelCode }) }),
+    get: (id: number) => this.http.get<Data<RoutingOperationRecord>>(`${this.v1}/engineering/routing/${id}`),
+    create: (body: RoutingOperationRequest) => this.http.post<Data<RoutingOperationRecord>>(`${this.v1}/engineering/routing`, body),
+    update: (id: number, body: RoutingOperationRequest) => this.http.put<Data<RoutingOperationRecord>>(`${this.v1}/engineering/routing/${id}`, body),
     delete: (id: number) => this.http.delete<Data<void>>(`${this.v1}/engineering/routing/${id}`),
   };
 
@@ -80,7 +86,7 @@ export class BackendApiService {
     activeOnLine: (lineCode: string) => this.http.get<Data<unknown[]>>(`${this.v1}/production/shop-floor/active`, { params: this.params({ lineCode }) }),
     materialCheck: (modelCode: string, quantity: number) => this.http.get<Data<{ modelCode: string; vehicleQuantity: number; sufficient: boolean; materials: { partCode: string; requiredQuantity: number; availableQuantity: number; sufficient: boolean }[] }>>(`${this.v1}/production/material-check`, { params: this.params({ modelCode, quantity }) }),
     createWorkOrder: (body: unknown) => this.http.post<Data<unknown>>(`${this.v1}/production/work-orders`, body),
-    transitionWorkOrder: (id: number, targetStatus: string) => this.http.post<Data<unknown>>(`${this.v1}/production/work-orders/${id}/transition`, { targetStatus }),
+    transitionWorkOrder: (id: number, targetStatus: string, producedQuantity?: number, rejectedQuantity?: number) => this.http.post<Data<unknown>>(`${this.v1}/production/work-orders/${id}/transition`, { targetStatus, producedQuantity, rejectedQuantity }),
   };
 
   // Quality

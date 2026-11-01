@@ -10,5 +10,6 @@ import java.util.List;
 @Repository
 public interface BomRowRepository extends JpaRepository<BomRow, Long> {
     List<BomRow> findByParentPartCodeOrderByLevelAscComponentPartCodeAsc(String parentPartCode);
+    List<BomRow> findByParentPartCode(String parentPartCode);
     boolean existsByParentPartCodeAndComponentPartCode(String parentPartCode, String componentPartCode);
 }

@@ -20,6 +20,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/sales")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN','FACTORY_ADMIN','MANAGER','SALES_MANAGER','FINANCE_MANAGER')")
 @Tag(name = "Sales & Yard", description = "Customers, dealers, sales orders with allocation + dispatch gating, yard map")
 public class SalesController {
 
@@ -57,7 +58,7 @@ public class SalesController {
     }
 
     @PostMapping("/orders/{id}/mark-paid")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FACTORY_ADMIN','MANAGER','SALES_MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FACTORY_ADMIN','MANAGER','SALES_MANAGER','FINANCE_MANAGER')")
     public ResponseEntity<ApiResponse<SalesDtos.SalesOrderResponse>> markPaid(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(orderService.markPaid(id), "Payment marked PAID"));
     }
@@ -68,7 +69,7 @@ public class SalesController {
     }
 
     @PostMapping("/orders/{id}/payments")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FACTORY_ADMIN','MANAGER','SALES_MANAGER')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','FACTORY_ADMIN','MANAGER','SALES_MANAGER','FINANCE_MANAGER')")
     public ResponseEntity<ApiResponse<SalesDtos.PaymentResponse>> recordPayment(
             @PathVariable Long id, @Valid @RequestBody SalesDtos.PaymentRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(orderService.recordPayment(id, request), "Payment recorded"));

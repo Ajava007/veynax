@@ -7,5 +7,8 @@ public enum ERole {
     SUPERVISOR,
     OPERATOR,
     QUALITY_INSPECTOR,
+    SALES_MANAGER,
+    HR_MANAGER,
+    FINANCE_MANAGER,
     VIEWER
 }

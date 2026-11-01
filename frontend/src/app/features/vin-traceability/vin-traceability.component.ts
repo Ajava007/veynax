@@ -15,7 +15,6 @@ export class VinTraceabilityComponent {
   inspections = signal<any[]>([]);
   gate = signal<any | null>(null);
   loading = signal(true);
-  reportLoading = signal(false);
   error = signal('');
 
   constructor(private api: BackendApiService) {
@@ -40,17 +39,4 @@ export class VinTraceabilityComponent {
     this.api.quality.inspectionsByVin(vin).subscribe({ next: response => this.inspections.set(response.data), error: () => this.error.set('Could not load quality checks.') });
   }
 
-  downloadReport() {
-    const vin = this.selectedVin();
-    if (!vin) return;
-    this.reportLoading.set(true);
-    this.api.reports.vinGenealogy(vin).subscribe({
-      next: blob => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a'); link.href = url; link.download = `${vin}-vehicle-report.pdf`; link.click(); URL.revokeObjectURL(url);
-        this.reportLoading.set(false);
-      },
-      error: () => { this.error.set('Could not create the vehicle report.'); this.reportLoading.set(false); }
-    });
-  }
 }
